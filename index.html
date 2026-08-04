@@ -43,7 +43,7 @@ header{position:sticky;top:0;z-index:40;background:var(--ink);color:#F4F1E6;
   padding-top:calc(10px + env(safe-area-inset-top))}
 .hrow{display:flex;align-items:center;gap:10px;max-width:1080px;margin:0 auto}
 .brand{font-family:var(--d);font-weight:800;font-size:16px;letter-spacing:-.02em;flex:1;min-width:0}
-.brand small{display:block;font-family:var(--m);font-weight:400;font-size:9.5px;
+.brand small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--m);font-weight:400;font-size:9.5px;
   letter-spacing:.13em;text-transform:uppercase;color:#9DB0A6;margin-top:2px}
 .hstat{font-family:var(--m);font-size:10px;text-align:right;color:#9DB0A6;line-height:1.35;white-space:nowrap}
 .chip{display:inline-block;margin-top:4px;font-family:var(--m);font-size:8.5px;letter-spacing:.07em;
@@ -625,6 +625,103 @@ const BUDGET=[
  ['US activities',820,1080],['US food — 14 days',1120,1680],['Miscellaneous',500,910]];
 </script>
 <script>
+
+/* ═══════════════════════════════════════════════════════════
+   PHOTO STORE — IndexedDB
+   localStorage caps at about 5 MB and only holds text, so images had
+   to be base64, which adds a third to every file. IndexedDB holds real
+   Blobs and its quota runs to hundreds of megabytes or more, so the
+   only practical ceiling now is the device's free space.
+   The small JSON state stays in localStorage; only bytes live here.
+   ═══════════════════════════════════════════════════════════ */
+const IDB={
+ db:null,
+ open(){
+  if(this.db)return Promise.resolve(this.db);
+  return new Promise((res,rej)=>{
+   const r=indexedDB.open('larchcanyon',1);
+   r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('blobs'))d.createObjectStore('blobs')};
+   r.onsuccess=()=>{this.db=r.result;res(this.db)};
+   r.onerror=()=>rej(r.error);
+  });
+ },
+ async tx(mode){const d=await this.open();return d.transaction('blobs',mode).objectStore('blobs')},
+ async put(k,blob){const s=await this.tx('readwrite');
+  return new Promise((res,rej)=>{const q=s.put(blob,k);q.onsuccess=()=>res(true);q.onerror=()=>rej(q.error)})},
+ async get(k){const s=await this.tx('readonly');
+  return new Promise(res=>{const q=s.get(k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)})},
+ async del(k){const s=await this.tx('readwrite');
+  return new Promise(res=>{const q=s.delete(k);q.onsuccess=()=>res(true);q.onerror=()=>res(false)})},
+ async keys(){const s=await this.tx('readonly');
+  return new Promise(res=>{const q=s.getAllKeys();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])})}
+};
+
+const Photos={
+ url:{},          // id -> object URL, created once at boot
+ async loadAll(){
+  try{
+   const keys=await IDB.keys();
+   for(const k of keys){
+    if(this.url[k])continue;
+    const b=await IDB.get(k);
+    if(b)this.url[k]=URL.createObjectURL(b);
+   }
+  }catch(e){console.warn('photo load',e)}
+ },
+ async add(blob,id){
+  id=id||('p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7));
+  await IDB.put(id,blob);
+  if(this.url[id])URL.revokeObjectURL(this.url[id]);
+  this.url[id]=URL.createObjectURL(blob);
+  return id;
+ },
+ async remove(id){
+  if(!id)return;
+  if(this.url[id]){URL.revokeObjectURL(this.url[id]);delete this.url[id]}
+  await IDB.del(id);
+ },
+ src(ref){
+  if(!ref)return null;
+  if(typeof ref==='string')return ref.startsWith('data:')||ref.startsWith('http')?ref:null;
+  if(ref.p&&this.url[ref.p])return this.url[ref.p];
+  return null;
+ },
+ async blob(ref){
+  if(!ref)return null;
+  if(typeof ref==='object'&&ref.p){const b=await IDB.get(ref.p);if(b)return b}
+  if(typeof ref==='string'&&ref.startsWith('data:'))return dataUrlToBlob(ref);
+  return null;
+ },
+ async estimate(){
+  try{const e=await navigator.storage.estimate();
+   return{used:e.usage||0,quota:e.quota||0}}catch(e){return{used:0,quota:0}}
+ }
+};
+function dataUrlToBlob(d){
+ const[meta,b64]=d.split(',');const mime=(meta.match(/:(.*?);/)||[,'image/jpeg'])[1];
+ const bin=atob(b64);const a=new Uint8Array(bin.length);
+ for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+ return new Blob([a],{type:mime});
+}
+function blobToDataUrl(b){return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(b)})}
+
+/* one-off move of anything already stored as base64 in localStorage */
+async function migratePhotos(){
+ let moved=0;
+ const conv=async v=>{
+  if(typeof v!=='string'||!v.startsWith('data:'))return null;
+  const id=await Photos.add(dataUrlToBlob(v));moved++;return{p:id};
+ };
+ for(const[k,v]of Object.entries(S.photos||{})){const r=await conv(v);if(r)S.photos[k]=r}
+ for(const[k,o]of Object.entries(S.outfits||{})){
+  if(!o)continue;
+  for(const f of['img','img2']){const r=await conv(o[f]);if(r)o[f]=r}
+ }
+ for(const d of(S.docs||[])){const r=await conv(d.img);if(r)d.img=r}
+ if(moved){await Store.save();toast(`Moved ${moved} photo${moved===1?'':'s'} to the larger store`)}
+ return moved;
+}
+
 /* ═══════════════════ STORAGE ═══════════════════
    Works in two places: Claude artifacts (window.storage) and any
    normal browser / GitHub Pages (localStorage). Same API either way. */
@@ -648,7 +745,7 @@ const Store={
       else{localStorage.setItem('larchcanyon',s)}
       return true;
     }catch(e){
-      toast(e&&/quota/i.test(e.message||'')?'Storage full — remove some photos':'Could not save');
+      toast(e&&/quota/i.test(e.message||'')?'Could not save settings — device storage is full':'Could not save');
       return false;
     }
   },
@@ -656,8 +753,70 @@ const Store={
 };
 const CAP=4.4*1024*1024; // practical browser ceiling
 
-let S={done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{},v:1};
+let S={done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{},cards:[],v:1};
 const save=()=>{Store.mem=S;Store.save()};
+
+
+/* ═══════════════════════════════════════════════════════════
+   LIVE FX
+   Mid-market rates from ExchangeRate-API's open endpoint — no key,
+   CORS-open, 161 currencies. Cached locally so the app still converts
+   with no signal, showing the date the rate was taken.
+   Card rates are then derived per card: banks settle at roughly the
+   network rate plus their own markup, which no public API exposes,
+   so each card carries the markup you enter for it.
+   ═══════════════════════════════════════════════════════════ */
+const FX={
+ rates:null, at:null, stale:false,
+ FALLBACK:{IDR:16500,CAD:1.37,USD:1},
+ load(){
+  try{const c=JSON.parse(localStorage.getItem('larchcanyon.fx')||'null');
+   if(c&&c.rates){this.rates=c.rates;this.at=c.at}}catch(e){}
+  if(!this.rates){this.rates=this.FALLBACK;this.at=null}
+ },
+ async refresh(force){
+  const age=this.at?(Date.now()-new Date(this.at).getTime())/36e5:1e9;
+  if(!force&&age<6)return this.rates;
+  if(!navigator.onLine){this.stale=true;return this.rates}
+  try{
+   const r=await fetch('https://open.er-api.com/v6/latest/USD');
+   if(!r.ok)throw 0;
+   const j=await r.json();
+   if(!j.rates||!j.rates.IDR)throw 0;
+   this.rates={IDR:j.rates.IDR,CAD:j.rates.CAD,USD:1};
+   this.at=j.time_last_update_utc||new Date().toISOString();
+   this.stale=false;
+   localStorage.setItem('larchcanyon.fx',JSON.stringify({rates:this.rates,at:this.at}));
+  }catch(e){this.stale=true}
+  return this.rates;
+ },
+ /* mid-market: 1 unit of `cur` in IDR */
+ idr(cur){
+  const r=this.rates||this.FALLBACK;
+  if(cur==='IDR')return 1;
+  if(cur==='USD')return r.IDR;
+  if(!r[cur])return r.IDR;
+  return r.IDR/r[cur];            // USD->IDR divided by USD->cur
+ },
+ age(){
+  if(!this.at)return 'no live rate yet';
+  const d=new Date(this.at);
+  const hrs=Math.round((Date.now()-d.getTime())/36e5);
+  if(hrs<1)return 'updated just now';
+  if(hrs<48)return `updated ${hrs}h ago`;
+  return 'as of '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+ }
+};
+
+/* what a card actually costs you: mid-market + that bank's markup + any flat fee */
+function cardRate(card,cur){
+ const mid=FX.idr(cur||'USD');
+ const mk=(card&&card.markup!=null)?card.markup:0;
+ const fee=(card&&card.fee!=null)?card.fee:0;
+ return mid*(1+(mk+fee)/100);
+}
+const CURS=['USD','CAD','IDR'];
+const NETWORKS=['Visa','Mastercard','Amex','JCB','Other'];
 
 /* ═══════════════════ HELPERS ═══════════════════ */
 const $=(s,r)=>(r||document).querySelector(s);
@@ -702,7 +861,7 @@ const WX={cache:{},
    full-resolution photos would fill it after four or five images. */
 function processImage(file,maxPx,q){
  return new Promise((res,rej)=>{
-  if(!file.type.startsWith('image/'))return rej(new Error('Images only — PDFs are too large for browser storage'));
+  if(!file.type.startsWith('image/'))return rej(new Error('Images only — photograph a document rather than uploading a PDF'));
   const rd=new FileReader();
   rd.onerror=()=>rej(new Error('Could not read that file'));
   rd.onload=()=>{
@@ -713,7 +872,7 @@ function processImage(file,maxPx,q){
     w=Math.round(w*sc);h=Math.round(h*sc);
     const c=document.createElement('canvas');c.width=w;c.height=h;
     const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(im,0,0,w,h);
-    res(c.toDataURL('image/jpeg',q));
+    c.toBlob(b=>b?res(b):rej(new Error('Could not encode that image')),'image/jpeg',q);
    };im.src=rd.result;
   };rd.readAsDataURL(file);
  });
@@ -724,7 +883,7 @@ $('#filepick').addEventListener('change',async e=>{
  const files=[...e.target.files];if(!files.length||!pickCb)return;
  toast('Processing…');
  for(const f of files){
-  try{const d=await processImage(f,1400,.72);await pickCb(d,f.name)}
+  try{const d=await processImage(f,1800,.82);await pickCb(d,f.name)}
   catch(err){toast(err.message)}
  }
  pickCb=null;
@@ -897,7 +1056,7 @@ function photoBlock(idx){
  const d=DAYS[idx];if(!d.ph||!d.ph.length)return'';
  return `<div class="eyebrow" style="margin-top:13px">Photos — ${esc(LOC[d.base].n)}</div>
   <div class="pgrid">${d.ph.map((p,i)=>{
-   const key=idx+'.'+i,img=S.photos[key];
+   const key=idx+'.'+i,img=Photos.src(S.photos[key]);
    const q=encodeURIComponent(p[0]+' '+p[1]);
    return `<div class="pslot" data-photo="${key}" data-q="${q}">
     ${img?`<img src="${img}" alt="${esc(p[0])}"><button class="pdel" data-delphoto="${key}">×</button>
@@ -933,7 +1092,9 @@ function bindDays(root){
  $$('[data-time]',root).forEach(b=>b.onclick=e=>{e.stopPropagation();editTime(b.dataset.time)});
  $$('[data-photo]',root).forEach(b=>b.onclick=e=>{
   if(e.target.dataset.delphoto)return;photoSheet(b.dataset.photo,decodeURIComponent(b.dataset.q))});
- $$('[data-delphoto]',root).forEach(b=>b.onclick=e=>{e.stopPropagation();delete S.photos[b.dataset.delphoto];save();render();toast('Photo removed')});
+ $$('[data-delphoto]',root).forEach(b=>b.onclick=async e=>{e.stopPropagation();
+  const k=b.dataset.delphoto,o=S.photos[k];if(o&&o.p)await Photos.remove(o.p);
+  delete S.photos[k];touch('photos',k);save();render();toast('Photo removed')});
  $$('[data-note]',root).forEach(b=>b.onclick=()=>noteSheet(+b.dataset.note));
  $$('[data-addbk]',root).forEach(b=>b.onclick=()=>bookingSheet(null,DAYS[+b.dataset.addbk].d));
 }
@@ -981,8 +1142,8 @@ function vRoute(){
    written into the repo.
    ═══════════════════════════════════════════════════════════ */
 const CFGKEY='larchcanyon.gh';        // never synced, never committed
-const SYNCED=['done','items','bookings','photos','outfits','docs','todos','packing','spend','notes'];
-const BY_ID=['bookings','docs','spend'];   // arrays keyed by .id
+const SYNCED=['done','items','bookings','photos','outfits','docs','todos','packing','spend','notes','cards'];
+const BY_ID=['bookings','docs','spend','cards'];   // arrays keyed by .id
 const STATE_PATH='data/state.json';
 const PHOTO_DIR='data/photos';
 
@@ -1077,48 +1238,48 @@ const Sync={
  /* ---- photos live as real files, not base64 inside the JSON ---- */
  async uploadPhotos(state){
   const up=[];
-  for(const [k,v] of Object.entries(state.photos||{})){
-   if(typeof v==='string'&&v.startsWith('data:'))up.push(['photos',k,v]);
-  }
-  for(const [k,o] of Object.entries(state.outfits||{})){
-   ['img','img2'].forEach(f=>{if(o&&typeof o[f]==='string'&&o[f].startsWith('data:'))up.push(['outfits',k+'|'+f,o[f]])});
-  }
-  (state.docs||[]).forEach(d=>{if(d.img&&d.img.startsWith('data:'))up.push(['docs',d.id,d.img])});
+  const pending=v=>v&&typeof v==='object'&&v.p&&!v.f;
+  for(const [k,v] of Object.entries(state.photos||{}))if(pending(v))up.push(['photos',k,v]);
+  for(const [k,o] of Object.entries(state.outfits||{}))
+   ['img','img2'].forEach(f=>{if(o&&pending(o[f]))up.push(['outfits',k+'|'+f,o[f]])});
+  (state.docs||[]).forEach(d=>{if(pending(d.img))up.push(['docs',d.id,d.img])});
   let n=0;
-  for(const [sec,key,data] of up){
-   const id=(sec+'_'+key).replace(/[^A-Za-z0-9_.-]/g,'_');
-   const path=`${PHOTO_DIR}/${id}.jpg`;
-   const b64=data.split(',')[1];
+  for(const [sec,key,ref] of up){
+   const blob=await IDB.get(ref.p);
+   if(!blob)continue;
+   const path=`${PHOTO_DIR}/${ref.p}.jpg`;
+   const b64=await new Promise(res=>{const r=new FileReader();
+    r.onload=()=>res(String(r.result).split(',')[1]);r.readAsDataURL(blob)});
    let sha=null;try{const ex=await this.getFile(path);sha=ex&&ex.sha}catch(e){}
    try{
-    await this.putFile(path,b64,sha,'photo '+id);
-    const ref={f:path};
-    if(sec==='photos')state.photos[key]=ref;
-    else if(sec==='outfits'){const[kk,ff]=key.split('|');state.outfits[kk][ff]=ref}
-    else{const d=state.docs.find(x=>x.id===key);if(d)d.img=ref}
+    await this.putFile(path,b64,sha,'photo '+ref.p);
+    const nref={p:ref.p,f:path};
+    if(sec==='photos')state.photos[key]=nref;
+    else if(sec==='outfits'){const[kk,ff]=key.split('|');state.outfits[kk][ff]=nref}
+    else{const d=state.docs.find(x=>x.id===key);if(d)d.img=nref}
     n++;
-   }catch(e){/* leave it local; try again next sync */}
+   }catch(e){/* stays local; retried next sync */}
   }
   return n;
  },
 
  /* fetch a photo file once, then keep it in the device cache */
- photoCache:{},
  async resolve(ref){
-  if(!ref)return null;
-  if(typeof ref==='string')return ref;
-  if(!ref.f)return null;
-  if(this.photoCache[ref.f])return this.photoCache[ref.f];
-  try{const cached=localStorage.getItem('pc:'+ref.f);
-   if(cached){this.photoCache[ref.f]=cached;return cached}}catch(e){}
-  if(!this.on)return null;
+  // Already on this device?
+  if(!ref||typeof ref!=='object'||!ref.p)return false;
+  if(Photos.url[ref.p])return false;
+  const have=await IDB.get(ref.p);
+  if(have){Photos.url[ref.p]=URL.createObjectURL(have);return true}
+  if(!ref.f||!this.on)return false;
   try{
-   const j=await this.getFile(ref.f);if(!j||!j.content)return null;
-   const url='data:image/jpeg;base64,'+j.content.replace(/\s/g,'');
-   this.photoCache[ref.f]=url;
-   try{localStorage.setItem('pc:'+ref.f,url)}catch(e){}
-   return url;
-  }catch(e){return null}
+   const j=await this.getFile(ref.f);
+   if(!j||!j.content)return false;
+   const bin=atob(j.content.replace(/\s/g,''));
+   const a=new Uint8Array(bin.length);
+   for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+   await Photos.add(new Blob([a],{type:'image/jpeg'}),ref.p);
+   return true;
+  }catch(e){return false}
  },
 
  async run(silent){
@@ -1219,16 +1380,15 @@ function syncSheet(){
 
 /* ---- resolve remote photo refs into displayable images ---- */
 async function hydratePhotos(){
- const jobs=[];
- Object.entries(S.photos||{}).forEach(([k,v])=>{
-  if(v&&typeof v==='object'&&v.f)jobs.push(Sync.resolve(v).then(u=>{if(u)S.photos[k]=u}));});
- Object.entries(S.outfits||{}).forEach(([k,o])=>{
-  if(!o)return;['img','img2'].forEach(f=>{
-   if(o[f]&&typeof o[f]==='object'&&o[f].f)jobs.push(Sync.resolve(o[f]).then(u=>{if(u)o[f]=u}));});});
- (S.docs||[]).forEach(d=>{
-  if(d.img&&typeof d.img==='object'&&d.img.f)jobs.push(Sync.resolve(d.img).then(u=>{if(u)d.img=u}));});
- if(!jobs.length)return false;
- await Promise.all(jobs);return true;
+ const refs=[];
+ Object.values(S.photos||{}).forEach(v=>{if(v&&v.p)refs.push(v)});
+ Object.values(S.outfits||{}).forEach(o=>{if(o){['img','img2'].forEach(f=>{if(o[f]&&o[f].p)refs.push(o[f])})}});
+ (S.docs||[]).forEach(d=>{if(d.img&&d.img.p)refs.push(d.img)});
+ const todo=refs.filter(r=>!Photos.url[r.p]);
+ if(!todo.length)return false;
+ let got=0;
+ for(const r of todo){if(await Sync.resolve(r))got++}
+ return got>0;
 }
 
 window.addEventListener('online',()=>{if(Sync.on)Sync.run(true)});
@@ -1262,7 +1422,7 @@ function noteSheet(idx){
  if($('#ndel'))$('#ndel').onclick=()=>{delete S.notes[idx];touch('notes',idx);save();closeSheet();render()};
 }
 function photoSheet(key,q){
- const has=S.photos[key];
+ const has=Photos.src(S.photos[key]);
  openSheet(`<h3>${esc(q)}</h3>
   <p class="hint" style="margin-bottom:13px">Add your own photo, or paste an image URL. Stored on this device only.</p>
   ${has?`<img src="${has}" style="width:100%;border-radius:10px;margin-bottom:11px">`:''}
@@ -1274,8 +1434,12 @@ function photoSheet(key,q){
   <p class="hint" style="margin:15px 0 6px">Need a reference shot first?</p>
   <a class="btn ghost sm" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q)}" target="_blank" rel="noopener">Search images for this place</a>
   <p class="hint" style="margin-top:13px">Uploads are resized to 1400px and re-encoded so they fit in browser storage. Roughly 20–25 photos will fit in total — the Export tab shows how full you are.</p>`);
- $('#pup').onclick=()=>pickImage(async d=>{S.photos[key]=d;touch('photos',key);await save();closeSheet();render();toast('Photo added')});
- if($('#prm'))$('#prm').onclick=()=>{delete S.photos[key];touch('photos',key);save();closeSheet();render();toast('Removed')};
+ $('#pup').onclick=()=>pickImage(async b=>{
+  const old=S.photos[key];const id=await Photos.add(b);
+  if(old&&old.p&&old.p!==id)await Photos.remove(old.p);
+  S.photos[key]={p:id};touch('photos',key);await save();closeSheet();render();toast('Photo added')});
+ if($('#prm'))$('#prm').onclick=async()=>{const o=S.photos[key];if(o&&o.p)await Photos.remove(o.p);
+  delete S.photos[key];touch('photos',key);save();closeSheet();render();toast('Removed')};
  $('#purlgo').onclick=()=>{const u=$('#purl').value.trim();
   if(!/^https?:\/\//.test(u))return toast('Needs to start with http');
   S.photos[key]=u;touch('photos',key);save();closeSheet();render();toast('Linked')};
@@ -1350,18 +1514,21 @@ function vBook(){
   <p class="hint" style="margin-bottom:11px">Photograph a boarding pass, receipt or confirmation. Images only — PDFs are far too large for browser storage, so keep those in your email.</p>`;
  if(S.docs.length)
   h+=`<div class="pgrid">${S.docs.map(d=>`<div class="pslot" data-doc="${d.id}">
-   <img src="${d.img}" alt="${esc(d.label)}"><button class="pdel" data-deldoc="${d.id}">×</button>
+   <img src="${Photos.src(d.img)||''}" alt="${esc(d.label)}"><button class="pdel" data-deldoc="${d.id}">×</button>
    <div class="cap">${esc(d.label)}</div></div>`).join('')}</div>`;
  el.innerHTML=h;
  $('#addbk').onclick=()=>bookingSheet(null,todayISO()>=TRIP.start?todayISO():TRIP.start);
  $$('[data-edit]',el).forEach(b=>b.onclick=()=>bookingSheet(b.dataset.edit));
- $('#adddoc').onclick=()=>pickImage(async(img,fn)=>{
-  const _id=uid();S.docs.push({id:_id,img,label:(fn||'Document').replace(/\.[^.]+$/,'').slice(0,28)});touch('docs',_id);await save();render();toast('Saved')},true);
- $$('[data-deldoc]',el).forEach(b=>b.onclick=e=>{e.stopPropagation();
-  touch('docs',b.dataset.deldoc);S.docs=S.docs.filter(d=>d.id!==b.dataset.deldoc);save();render();toast('Removed')});
+ $('#adddoc').onclick=()=>pickImage(async(blob,fn)=>{
+  const _id=uid(),pid=await Photos.add(blob);
+  S.docs.push({id:_id,img:{p:pid},label:(fn||'Document').replace(/\.[^.]+$/,'').slice(0,28)});
+  touch('docs',_id);await save();render();toast('Saved')},true);
+ $$('[data-deldoc]',el).forEach(b=>b.onclick=async e=>{e.stopPropagation();
+  const d=S.docs.find(x=>x.id===b.dataset.deldoc);if(d&&d.img&&d.img.p)await Photos.remove(d.img.p);
+  touch('docs',b.dataset.deldoc);S.docs=S.docs.filter(x=>x.id!==b.dataset.deldoc);save();render();toast('Removed')});
  $$('[data-doc]',el).forEach(b=>b.onclick=e=>{
   if(e.target.dataset.deldoc)return;const d=S.docs.find(x=>x.id===b.dataset.doc);
-  openSheet(`<h3>${esc(d.label)}</h3><img src="${d.img}" style="width:100%;border-radius:10px;margin:11px 0">
+  openSheet(`<h3>${esc(d.label)}</h3><img src="${Photos.src(d.img)||''}" style="width:100%;border-radius:10px;margin:11px 0">
    <label class="f"><span>Label</span><input id="dl" value="${esc(d.label)}"></label>
    <div class="row"><button class="btn" id="dsave">Save label</button><span class="sp"></span>
    <button class="btn ghost" onclick="closeSheet()">Close</button></div>`);
@@ -1424,16 +1591,16 @@ function vScrap(){
     <div class="row"><div style="flex:1;min-width:0">
      <h3 style="font-size:17px">${esc(L.n)}</h3>
      <p class="hint">${esc(L.a)} · ${ds.length} ${ds.length===1?'day':'days'} · ${wxLine}</p></div>
-     ${o.img?'<span class="tag ok">planned</span>':'<span class="tag">empty</span>'}</div>
+     ${Photos.src(o.img)?'<span class="tag ok">planned</span>':'<span class="tag">empty</span>'}</div>
     <div class="row" style="margin-top:9px">
      ${ds.map(d=>`<span class="tag">${dShort(d.d).dd} ${dShort(d.d).mm}</span>`).join('')}</div>
    </div>
    <div class="pad" style="padding-top:0">
     <div class="pgrid" style="grid-template-columns:repeat(auto-fill,minmax(112px,1fr))">
      <div class="pslot" data-outfit="${bk}" style="aspect-ratio:3/4">
-      ${o.img?`<img src="${o.img}" alt="Outfit for ${esc(L.n)}"><button class="pdel" data-delout="${bk}">×</button>`
+      ${Photos.src(o.img)?`<img src="${Photos.src(o.img)}" alt="Outfit for ${esc(L.n)}"><button class="pdel" data-delout="${bk}">×</button>`
        :`<div class="plus">+</div><div class="ph">Add outfit<br>photo</div>`}</div>
-     ${o.img2?`<div class="pslot" data-outfit2="${bk}" style="aspect-ratio:3/4"><img src="${o.img2}" alt="Alternate">
+     ${Photos.src(o.img2)?`<div class="pslot" data-outfit2="${bk}" style="aspect-ratio:3/4"><img src="${Photos.src(o.img2)}" alt="Alternate">
        <button class="pdel" data-delout2="${bk}">×</button></div>`
       :`<div class="pslot" data-outfit2="${bk}" style="aspect-ratio:3/4"><div class="plus">+</div><div class="ph">Alternate</div></div>`}
     </div>
@@ -1444,13 +1611,19 @@ function vScrap(){
  });
  el.innerHTML=h;
  $$('[data-outfit]',el).forEach(b=>b.onclick=e=>{if(e.target.dataset.delout)return;
-  pickImage(async d=>{S.outfits[b.dataset.outfit]={...(S.outfits[b.dataset.outfit]||{}),img:d};touch('outfits',b.dataset.outfit);await save();render();toast('Outfit saved')})});
+  pickImage(async blob=>{const k=b.dataset.outfit,prev=(S.outfits[k]||{}).img;
+   const id=await Photos.add(blob);if(prev&&prev.p&&prev.p!==id)await Photos.remove(prev.p);
+   S.outfits[k]={...(S.outfits[k]||{}),img:{p:id}};touch('outfits',k);await save();render();toast('Outfit saved')})});
  $$('[data-outfit2]',el).forEach(b=>b.onclick=e=>{if(e.target.dataset.delout2)return;
-  pickImage(async d=>{S.outfits[b.dataset.outfit2]={...(S.outfits[b.dataset.outfit2]||{}),img2:d};touch('outfits',b.dataset.outfit2);await save();render();toast('Saved')})});
- $$('[data-delout]',el).forEach(b=>b.onclick=e=>{e.stopPropagation();
-  const o=S.outfits[b.dataset.delout]||{};delete o.img;S.outfits[b.dataset.delout]=o;touch('outfits',b.dataset.delout);save();render()});
- $$('[data-delout2]',el).forEach(b=>b.onclick=e=>{e.stopPropagation();
-  const o=S.outfits[b.dataset.delout2]||{};delete o.img2;S.outfits[b.dataset.delout2]=o;touch('outfits',b.dataset.delout2);save();render()});
+  pickImage(async blob=>{const k=b.dataset.outfit2,prev=(S.outfits[k]||{}).img2;
+   const id=await Photos.add(blob);if(prev&&prev.p&&prev.p!==id)await Photos.remove(prev.p);
+   S.outfits[k]={...(S.outfits[k]||{}),img2:{p:id}};touch('outfits',k);await save();render();toast('Saved')})});
+ $$('[data-delout]',el).forEach(b=>b.onclick=async e=>{e.stopPropagation();
+  const o=S.outfits[b.dataset.delout]||{};if(o.img&&o.img.p)await Photos.remove(o.img.p);
+  delete o.img;S.outfits[b.dataset.delout]=o;touch('outfits',b.dataset.delout);save();render()});
+ $$('[data-delout2]',el).forEach(b=>b.onclick=async e=>{e.stopPropagation();
+  const o=S.outfits[b.dataset.delout2]||{};if(o.img2&&o.img2.p)await Photos.remove(o.img2.p);
+  delete o.img2;S.outfits[b.dataset.delout2]=o;touch('outfits',b.dataset.delout2);save();render()});
  $$('[data-outnote]',el).forEach(b=>b.onclick=()=>{
   const bk=b.dataset.outnote,L=LOC[bk],o=S.outfits[bk]||{};
   openSheet(`<h3>${esc(L.n)}</h3><p class="hint" style="margin-bottom:13px">${esc(L.a)} · expect ${L.cl[0]}–${L.cl[1]}°C</p>
@@ -1463,60 +1636,241 @@ function vScrap(){
  });
 }
 
-/* ═══════════════════ VIEW: BUDGET ═══════════════════ */
-function vMoney(){
+/* ═══════════════════ VIEW: MONEY ═══════════════════ */
+let moneyTab='sum';
+const cardById=id=>S.cards.find(c=>c.id===id);
+function cardLabel(id){
+ if(id==='cash-USD')return'Cash · USD';
+ if(id==='cash-CAD')return'Cash · CAD';
+ const c=cardById(id);return c?c.nick:'Unassigned';
+}
+function spendIDR(s){
+ const c=cardById(s.card);
+ const rate=c?cardRate(c,s.cur||'USD'):FX.idr(s.cur||'USD');
+ return (s.amt||0)*rate;
+}
+async function vMoney(){
  const el=$('#v-money');
+ await FX.refresh();
  const lo=BUDGET.reduce((n,b)=>n+b[1],0),hi=BUDGET.reduce((n,b)=>n+b[2],0);
  const booked=S.bookings.reduce((n,b)=>n+(b.cost||0),0);
- const extra=S.spend.reduce((n,s)=>n+s.amt,0);
- const spent=booked+extra;
- const rate=16500;
- let h=`<div class="sect-h"><h2>Budget</h2><span class="n">excl. EVA tickets</span></div>
-  <div class="card pad">
+ const logged=S.spend.reduce((n,s)=>n+((s.cur||'USD')==='USD'?s.amt:s.amt/(FX.rates[s.cur||'USD']||1)),0);
+ const spentUSD=booked+logged;
+ const spentIDR=S.spend.reduce((n,s)=>n+spendIDR(s),0)+booked*FX.idr('USD');
+ const usd=FX.idr('USD'),cad=FX.idr('CAD');
+
+ let h=`<div class="row noprint" style="margin-bottom:12px">
+  <button class="btn sm ${moneyTab==='sum'?'':'ghost'}" data-mt="sum">Overview</button>
+  <button class="btn sm ${moneyTab==='cards'?'':'ghost'}" data-mt="cards">Cards &amp; cash</button>
+  <button class="btn sm ${moneyTab==='log'?'':'ghost'}" data-mt="log">Spend log</button></div>`;
+
+ /* ---------- live rate strip, always visible ---------- */
+ h+=`<div class="card pad" style="padding-bottom:10px">
+   <div class="row"><div class="eyebrow" style="margin:0">Live rate</div>
+    <span class="sp"></span>
+    <span class="tag ${FX.stale?'canyon':'ok'}">${FX.stale?'cached':'live'}</span></div>
+   <div class="row" style="margin-top:8px;gap:16px">
+    <div><div class="mono" style="font-size:10px;color:var(--stone)">USD → IDR</div>
+     <div style="font-family:var(--d);font-size:21px;font-weight:800">${Math.round(usd).toLocaleString()}</div></div>
+    <div><div class="mono" style="font-size:10px;color:var(--stone)">CAD → IDR</div>
+     <div style="font-family:var(--d);font-size:21px;font-weight:800">${Math.round(cad).toLocaleString()}</div></div>
+    <span class="sp"></span>
+    <button class="btn ghost sm" id="fxr">Refresh</button></div>
+   <p class="hint" style="margin-top:7px">Mid-market, ${esc(FX.age())}. Your cards will settle a little above this — see Cards &amp; cash.</p>
+ </div>`;
+
+ if(moneyTab==='sum'){
+  h+=`<div class="card pad">
    <div class="kv"><span class="k">Planned range</span><span class="v">$${lo.toLocaleString()} – $${hi.toLocaleString()}</span></div>
    <div class="kv"><span class="k">Target</span><span class="v">$11,800</span></div>
-   <div class="kv"><span class="k">Committed so far</span><span class="v">$${spent.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
-   <div class="kv"><span class="k">In rupiah (at 16,500)</span><span class="v">IDR ${(spent*rate/1e6).toFixed(1)}M</span></div>
-   <div class="meter"><i class="${spent>hi?'max':spent>lo?'hi':''}" style="width:${Math.min(100,spent/hi*100)}%"></i></div>
-   <p class="hint">${spent?`${Math.round(spent/hi*100)}% of the upper estimate committed`:'Add costs to bookings and they appear here'}</p>
+   <div class="kv"><span class="k">Committed so far</span><span class="v">$${Math.round(spentUSD).toLocaleString()}</span></div>
+   <div class="kv"><span class="k">Actual cost in rupiah</span><span class="v">IDR ${(spentIDR/1e6).toFixed(1)}M</span></div>
+   <div class="meter"><i class="${spentUSD>hi?'max':spentUSD>lo?'hi':''}" style="width:${Math.min(100,spentUSD/hi*100)}%"></i></div>
+   <p class="hint">${spentUSD?`${Math.round(spentUSD/hi*100)}% of the upper estimate committed`:'Add costs to bookings, or log spend, and it appears here'}</p>
   </div>
   <div class="sect-h"><h2 style="font-size:17px">Planned by category</h2></div>
   <div class="card pad">${BUDGET.map(([n,a,b])=>
    `<div class="kv"><span class="k">${esc(n)}</span><span class="v">$${a.toLocaleString()}–${b.toLocaleString()}</span></div>`).join('')}
    <div class="kv"><span class="k"><b>Total excl. flights home</b></span><span class="v">$${lo.toLocaleString()}–${hi.toLocaleString()}</span></div>
   </div>
-  <div class="sect-h"><h2 style="font-size:17px">Actual spend</h2>
-   <span class="n">${S.spend.length} entries</span></div>
-  <button class="btn ghost" id="addsp" style="margin-bottom:11px">+ Log a cost</button>`;
- if(S.spend.length){
-  h+=`<div class="card pad">${S.spend.slice().reverse().map(s=>
-   `<div class="kv"><span class="k">${esc(s.what)}<br><span style="font-size:11px">${dLabel(s.date)}</span></span>
-    <span class="v">$${s.amt.toLocaleString()}<br><button class="btn ghost sm" data-delsp="${s.id}" style="margin-top:3px">Remove</button></span></div>`).join('')}</div>`;
+  <div class="alert info"><b>Where the savings already are</b>
+   $250 non-resident park pass instead of $735 at the gate · third-party rental insurance instead of the counter, $300–500 ·
+   crossover not SUV, $400–500 · Canmore over Banff townsite, $300–450 · Lone Pine over Furnace Creek, $120–200 ·
+   picnic lunches on park days, $300–400 · shopping in Alberta with no provincial sales tax, ~$110.</div>`;
  }
- h+=`<div class="alert info"><b>Where the savings already are</b>
-  $250 non-resident park pass instead of $735 at the gate · third-party rental insurance instead of the counter, $300–500 ·
-  crossover not SUV, $400–500 · Canmore over Banff townsite, $300–450 · Lone Pine over Furnace Creek, $120–200 ·
-  picnic lunches on park days, $300–400 · shopping in Alberta with no provincial sales tax, ~$110.</div>`;
+
+ if(moneyTab==='cards'){
+  h+=`<button class="btn" id="addcard" style="margin-bottom:11px">+ Add a card or cash</button>`;
+  if(!S.cards.length){
+   h+=`<div class="card"><div class="empty"><h3>No cards yet</h3>
+    <p>Add each card you are taking with its bank markup, and every cost you log will convert at that card's real rate rather than the mid-market one.</p></div></div>`;
+  }
+  S.cards.forEach(c=>{
+   const isCash=c.type==='cash';
+   const spent=S.spend.filter(s=>s.card===c.id);
+   const spentNative=spent.reduce((n,s)=>n+(s.cur===c.cur?s.amt:s.amt*FX.idr(s.cur||'USD')/FX.idr(c.cur)),0);
+   const spentIdr=spent.reduce((n,s)=>n+spendIDR(s),0);
+   const lim=c.limit||0;
+   const pct=lim?Math.min(100,spentIdr/lim*100):0;
+   const eff=cardRate(c,'USD');
+   h+=`<div class="card pad">
+    <div class="row" style="margin-bottom:6px">
+     <span class="tag ${isCash?'larch':'glacier'}">${isCash?'Cash':esc(c.network||'Card')}</span>
+     ${c.last4?`<span class="tag mono">•••• ${esc(c.last4)}</span>`:''}
+     <span class="sp"></span><button class="btn ghost sm" data-editcard="${c.id}">Edit</button></div>
+    <h3 style="font-size:17px">${esc(c.nick)}</h3>
+    <p class="hint">${esc(c.bank||'')}${c.holder?' · '+esc(c.holder):''}</p>
+    ${isCash?`
+     <div class="kv" style="margin-top:8px"><span class="k">Carrying</span><span class="v">${esc(c.cur)} ${(c.limit||0).toLocaleString()}</span></div>
+     <div class="kv"><span class="k">Spent</span><span class="v">${esc(c.cur)} ${Math.round(spentNative).toLocaleString()}</span></div>
+     <div class="kv"><span class="k">Left</span><span class="v">${esc(c.cur)} ${Math.round((c.limit||0)-spentNative).toLocaleString()}</span></div>
+     <div class="meter"><i class="${pct>90?'max':pct>70?'hi':''}" style="width:${lim?Math.min(100,spentNative/lim*100):0}%"></i></div>`
+    :`
+     <div class="kv" style="margin-top:8px"><span class="k">Effective rate</span><span class="v">1 USD = IDR ${Math.round(eff).toLocaleString()}</span></div>
+     <div class="kv"><span class="k">Bank markup</span><span class="v">${(c.markup||0)}%${c.fee?` + ${c.fee}% fee`:''}</span></div>
+     <div class="kv"><span class="k">Spent on this card</span><span class="v">IDR ${(spentIdr/1e6).toFixed(2)}M</span></div>
+     ${lim?`<div class="kv"><span class="k">Limit</span><span class="v">IDR ${(lim/1e6).toFixed(0)}M</span></div>
+      <div class="kv"><span class="k">Headroom</span><span class="v">IDR ${((lim-spentIdr)/1e6).toFixed(2)}M</span></div>
+      <div class="meter"><i class="${pct>90?'max':pct>70?'hi':''}" style="width:${pct}%"></i></div>
+      ${pct>85?'<div class="alert" style="margin-top:8px"><b>Close to the limit</b>Move spending to another card, or call the bank before a big charge declines abroad.</div>':''}`
+      :'<p class="hint" style="margin-top:6px">No limit set — add one to track headroom.</p>'}
+     <p class="hint" style="margin-top:7px">On $1,000 of spending this card costs about IDR ${Math.round(eff*1000/1e6*100)/100}M, versus IDR ${Math.round(FX.idr('USD')*1000/1e6*100)/100}M at mid-market.</p>`}
+   </div>`;
+  });
+  if(S.cards.filter(c=>c.type!=='cash').length>1){
+   const best=S.cards.filter(c=>c.type!=='cash').sort((a,b)=>cardRate(a,'USD')-cardRate(b,'USD'))[0];
+   h+=`<div class="alert ok"><b>Cheapest card to spend on</b>${esc(best.nick)} — ${(best.markup||0)}% markup, about IDR ${Math.round(cardRate(best,'USD')).toLocaleString()} per dollar.</div>`;
+  }
+  h+=`<div class="alert"><b>Always pay in the local currency</b>
+   If a card terminal or website offers to charge you in rupiah instead of dollars, decline it. That is dynamic currency conversion and it typically costs 3–7% on top of whatever your bank already charges. Choose USD in the United States and CAD in Canada, every time.</div>
+   <p class="hint">Markup is what your bank adds over the Visa or Mastercard rate. Indonesian issuers commonly sit between 2% and 3.5%; check your cardholder terms and put the real figure in, since it is the number that decides which card to reach for.</p>`;
+ }
+
+ if(moneyTab==='log'){
+  h+=`<button class="btn" id="addsp" style="margin-bottom:11px">+ Log a cost</button>`;
+  if(!S.spend.length){
+   h+=`<div class="card"><div class="empty"><h3>Nothing logged</h3>
+    <p>Log costs as you go and each one converts at the real rate of the card you used.</p></div></div>`;
+  }else{
+   const byCard={};
+   S.spend.forEach(s=>{const k=s.card||'none';(byCard[k]=byCard[k]||[]).push(s)});
+   Object.entries(byCard).forEach(([k,list])=>{
+    const tot=list.reduce((n,s)=>n+spendIDR(s),0);
+    h+=`<div class="sect-h"><h2 style="font-size:16px">${esc(cardLabel(k))}</h2>
+     <span class="n">IDR ${(tot/1e6).toFixed(2)}M</span></div><div class="card pad">`;
+    list.slice().reverse().forEach(s=>{
+     h+=`<div class="kv"><span class="k">${esc(s.what)}<br><span style="font-size:11px">${dLabel(s.date)}</span></span>
+      <span class="v">${esc(s.cur||'USD')} ${s.amt.toLocaleString()}<br>
+      <span style="font-size:11px;color:var(--stone)">IDR ${Math.round(spendIDR(s)).toLocaleString()}</span><br>
+      <button class="btn ghost sm" data-delsp="${s.id}" style="margin-top:3px">Remove</button></span></div>`;
+    });
+    h+=`</div>`;
+   });
+  }
+ }
  el.innerHTML=h;
- $('#addsp').onclick=()=>{
-  openSheet(`<h3>Log a cost</h3>
-   <label class="f"><span>What</span><input id="sw" placeholder="Fuel, Panamint Springs"></label>
-   <div class="grid2"><label class="f"><span>Amount (USD)</span><input type="number" inputmode="decimal" id="sa"></label>
-   <label class="f"><span>Date</span><input type="date" id="sd" value="${todayISO()}"></label></div>
-   <div class="row"><button class="btn" id="ssave">Add</button><span class="sp"></span>
-   <button class="btn ghost" onclick="closeSheet()">Cancel</button></div>`);
-  $('#ssave').onclick=()=>{const w=$('#sw').value.trim(),a=parseFloat($('#sa').value);
-   if(!w||!a)return toast('Need a description and an amount');
-   const _sid=uid();S.spend.push({id:_sid,what:w,amt:a,date:$('#sd').value});touch('spend',_sid);save();closeSheet();render();toast('Logged')};
+
+ $('#fxr').onclick=async()=>{await FX.refresh(true);render();toast(FX.stale?'Could not reach the rate service — using the cached rate':'Rate updated')};
+ $$('[data-mt]',el).forEach(b=>b.onclick=()=>{moneyTab=b.dataset.mt;render()});
+ if($('#addcard'))$('#addcard').onclick=()=>cardSheet(null);
+ $$('[data-editcard]',el).forEach(b=>b.onclick=()=>cardSheet(b.dataset.editcard));
+ if($('#addsp'))$('#addsp').onclick=()=>spendSheet();
+ $$('[data-delsp]',el).forEach(b=>b.onclick=()=>{touch('spend',b.dataset.delsp);
+  S.spend=S.spend.filter(s=>s.id!==b.dataset.delsp);save();render()});
+}
+
+function cardSheet(id){
+ const c=id?cardById(id):null;
+ const isCash=c?c.type==='cash':false;
+ openSheet(`<h3>${c?'Edit':'Add'} ${isCash?'cash':'card'}</h3>
+  <label class="f"><span>Type</span><select id="ctype">
+   <option value="credit"${c&&c.type==='credit'?' selected':''}>Credit card</option>
+   <option value="debit"${c&&c.type==='debit'?' selected':''}>Debit card</option>
+   <option value="cash"${isCash?' selected':''}>Cash</option></select></label>
+  <label class="f"><span>Name it</span><input id="cnick" value="${esc(c?c.nick:'')}" placeholder="BCA Visa Signature"></label>
+  <div id="cardonly">
+   <div class="grid2">
+    <label class="f"><span>Bank</span><input id="cbank" value="${esc(c?c.bank:'')}" placeholder="BCA"></label>
+    <label class="f"><span>Network</span><select id="cnet">${NETWORKS.map(n=>`<option${c&&c.network===n?' selected':''}>${n}</option>`).join('')}</select></label></div>
+   <div class="grid2">
+    <label class="f"><span>Name on card</span><input id="cholder" value="${esc(c?c.holder:'')}" placeholder="KENICHI E YAUWANTA"></label>
+    <label class="f"><span>Last 4 digits</span><input id="clast" inputmode="numeric" maxlength="4" value="${esc(c?c.last4:'')}" placeholder="4821"></label></div>
+   <div class="grid2">
+    <label class="f"><span>FX markup %</span><input type="number" step="0.1" inputmode="decimal" id="cmark" value="${c&&c.markup!=null?c.markup:3}"></label>
+    <label class="f"><span>Extra fee %</span><input type="number" step="0.1" inputmode="decimal" id="cfee" value="${c&&c.fee!=null?c.fee:0}"></label></div>
+   <label class="f"><span>Credit limit (IDR)</span><input type="number" inputmode="numeric" id="climit" value="${c&&c.type!=='cash'?(c.limit||''):''}" placeholder="50000000"></label>
+  </div>
+  <div id="cashonly" style="display:none">
+   <div class="grid2">
+    <label class="f"><span>Currency</span><select id="ccur">${CURS.map(x=>`<option${c&&c.cur===x?' selected':''}>${x}</option>`).join('')}</select></label>
+    <label class="f"><span>Amount carrying</span><input type="number" inputmode="decimal" id="ccash" value="${c&&c.type==='cash'?(c.limit||''):''}" placeholder="800"></label></div>
+  </div>
+  <div class="row"><button class="btn" id="csave">${c?'Save':'Add'}</button>
+   ${c?'<button class="btn warn" id="cdel">Delete</button>':''}
+   <span class="sp"></span><button class="btn ghost" onclick="closeSheet()">Cancel</button></div>
+  <p class="hint" style="margin-top:11px">Only the last four digits are stored, never a full number. Markup is what your bank adds over the network rate — check your cardholder terms; Indonesian issuers are commonly 2–3.5%.</p>`);
+ const sw=()=>{const cash=$('#ctype').value==='cash';
+  $('#cardonly').style.display=cash?'none':'block';$('#cashonly').style.display=cash?'block':'none'};
+ $('#ctype').onchange=sw;sw();
+ $('#csave').onclick=()=>{
+  const type=$('#ctype').value,cash=type==='cash';
+  const nick=$('#cnick').value.trim();
+  if(!nick)return toast('Give it a name');
+  const o={id:c?c.id:uid(),type,nick,
+   bank:cash?'':$('#cbank').value.trim(),network:cash?'':$('#cnet').value,
+   holder:cash?'':$('#cholder').value.trim(),last4:cash?'':$('#clast').value.trim().slice(-4),
+   markup:cash?0:parseFloat($('#cmark').value)||0,fee:cash?0:parseFloat($('#cfee').value)||0,
+   cur:cash?$('#ccur').value:'IDR',
+   limit:cash?(parseFloat($('#ccash').value)||0):(parseFloat($('#climit').value)||0)};
+  if(c)Object.assign(c,o);else S.cards.push(o);
+  touch('cards',o.id);save();closeSheet();render();toast(c?'Saved':'Added');
  };
- $$('[data-delsp]',el).forEach(b=>b.onclick=()=>{touch('spend',b.dataset.delsp);S.spend=S.spend.filter(s=>s.id!==b.dataset.delsp);save();render()});
+ if($('#cdel'))$('#cdel').onclick=()=>{
+  if(!confirm('Delete this card? Costs logged against it stay, but lose their rate.'))return;
+  touch('cards',id);S.cards=S.cards.filter(x=>x.id!==id);save();closeSheet();render();toast('Deleted')};
+}
+
+function spendSheet(){
+ const opts=S.cards.map(c=>`<option value="${c.id}">${esc(c.nick)}${c.last4?' ····'+esc(c.last4):''}</option>`).join('');
+ openSheet(`<h3>Log a cost</h3>
+  <label class="f"><span>What</span><input id="sw" placeholder="Fuel, Panamint Springs"></label>
+  <div class="grid2">
+   <label class="f"><span>Amount</span><input type="number" inputmode="decimal" id="sa"></label>
+   <label class="f"><span>Currency</span><select id="sc">${CURS.map(x=>`<option${x==='USD'?' selected':''}>${x}</option>`).join('')}</select></label></div>
+  <label class="f"><span>Paid with</span><select id="scard">
+   <option value="">Not recorded</option>${opts}</select></label>
+  <label class="f"><span>Date</span><input type="date" id="sd" value="${todayISO()}"></label>
+  <div id="spreview" class="alert info" style="display:none"></div>
+  <div class="row"><button class="btn" id="ssave">Add</button><span class="sp"></span>
+  <button class="btn ghost" onclick="closeSheet()">Cancel</button></div>
+  ${S.cards.length?'':'<p class="hint" style="margin-top:11px">No cards set up yet. Add them under Cards &amp; cash and each cost will convert at that card\u2019s real rate.</p>'}`);
+ const prev=()=>{
+  const a=parseFloat($('#sa').value),cur=$('#sc').value,c=cardById($('#scard').value);
+  const box=$('#spreview');
+  if(!a){box.style.display='none';return}
+  const rate=c?cardRate(c,cur):FX.idr(cur);
+  box.style.display='block';
+  box.innerHTML=`<b>About IDR ${Math.round(a*rate).toLocaleString()}</b>`+
+   (c?`${esc(c.nick)} at ${(c.markup||0)+(c.fee||0)}% over mid-market`:'At the mid-market rate — pick a card for the real cost');
+ };
+ ['#sa','#sc','#scard'].forEach(s=>{$(s).oninput=prev;$(s).onchange=prev});
+ $('#ssave').onclick=()=>{
+  const w=$('#sw').value.trim(),a=parseFloat($('#sa').value);
+  if(!w||!a)return toast('Need a description and an amount');
+  const _sid=uid();
+  S.spend.push({id:_sid,what:w,amt:a,cur:$('#sc').value,card:$('#scard').value||'',date:$('#sd').value});
+  touch('spend',_sid);save();closeSheet();render();toast('Logged');
+ };
 }
 
 /* ═══════════════════ VIEW: EXPORT ═══════════════════ */
-function vOut(){
+async function vOut(){
  const el=$('#v-out');
- const used=Store.bytes(),pct=Math.min(100,used/CAP*100);
- const photoN=Object.keys(S.photos).length+Object.keys(S.outfits).length+S.docs.length;
+ const est=await Photos.estimate();
+ const used=est.used||Store.bytes();
+ const quota=est.quota||CAP;
+ const pct=Math.min(100,used/quota*100);
+ const photoN=Object.keys(Photos.url).length;
  el.innerHTML=`<div class="sect-h"><h2>Export &amp; backup</h2></div>
   <div class="card pad">
    <div class="eyebrow">Embassy pack</div>
@@ -1529,19 +1883,20 @@ function vOut(){
   </div>
   <div class="card pad">
    <div class="eyebrow">Backup file</div>
-   <p class="hint" style="margin-bottom:11px">A file you can keep anywhere. Worth downloading before the trip and after any big edit, whether or not sync is on — it is the one copy that does not depend on GitHub or on this device.</p>
+   <p class="hint" style="margin-bottom:11px">A file you can keep anywhere. Worth downloading before the trip and after any big edit — it is the one copy that does not depend on GitHub or on this device. It holds your bookings, ticks and notes; the photos themselves live in the data repo and come back on their own once sync is connected.</p>
    <div class="row"><button class="btn" id="dl">Download backup</button>
     <button class="btn ghost" id="up">Restore from file</button></div>
   </div>
   <div class="card pad">
    <div class="eyebrow">Storage</div>
    <div class="meter"><i class="${pct>85?'max':pct>60?'hi':''}" style="width:${pct}%"></i></div>
-   <div class="kv"><span class="k">Used</span><span class="v">${fmtB(used)} of ~${fmtB(CAP)}</span></div>
-   <div class="kv"><span class="k">Images stored</span><span class="v">${photoN}</span></div>
+   <div class="kv"><span class="k">Used</span><span class="v">${fmtB(used)} of ${fmtB(quota)}</span></div>
+   <div class="kv"><span class="k">Photos on this device</span><span class="v">${photoN}</span></div>
+   <div class="kv"><span class="k">Photo store</span><span class="v">${Photos.persisted?'IndexedDB · persistent':'IndexedDB'}</span></div>
    <div class="kv"><span class="k">Bookings</span><span class="v">${S.bookings.length}</span></div>
    <div class="kv"><span class="k">Local store</span><span class="v">${Store.remote?'Claude storage':'Browser'}</span></div>
    <div class="kv"><span class="k">Sync</span><span class="v">${Sync.on?'GitHub · '+esc(Sync.cfg.repo):'off'}</span></div>
-   ${pct>78?'<div class="alert" style="margin-top:9px"><b>Getting full</b>Remove a few photos, or download a backup and clear older documents.</div>':''}
+   ${pct>88?'<div class="alert" style="margin-top:9px"><b>Device storage is getting full</b>This is your phone\'s free space, not an app limit. Photos already synced are safe in the data repo and can be re-downloaded.</div>':'<p class="hint" style="margin-top:7px">Photos are held as binary in IndexedDB, so the ceiling is your device\'s free space rather than a fixed few megabytes. Synced photos also live in the data repo.</p>'}
   </div>
   <div class="card pad">
    <div class="eyebrow">Reset</div>
@@ -1552,7 +1907,9 @@ function vOut(){
    <div class="eyebrow">About</div>
    <p class="hint">Larch &amp; Canyon — built for Kenny and Hershania's honeymoon, 14 September to 6 October 2026.
    Weather from Open-Meteo when the date is inside the 16-day forecast window; otherwise seasonal ranges, marked with ≈.
-   Works offline once loaded, apart from live weather.</p>
+   Exchange rates by <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener">ExchangeRate-API</a>, cached on the device so conversions still work offline.
+   Photos are held in IndexedDB, so capacity is your device's free space rather than a fixed few megabytes.
+   Works offline once loaded, apart from live weather and rates.</p>
   </div>
   <section class="view" id="v-print"></section>`;
 
@@ -1571,7 +1928,7 @@ function vOut(){
  if($('#syncset'))$('#syncset').onclick=syncSheet;
  $('#pemb').onclick=printPack;
  $('#dl').onclick=()=>{
-  const blob=new Blob([JSON.stringify({app:'larch-canyon',v:1,when:new Date().toISOString(),data:S},null,1)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({app:'larch-canyon',v:2,when:new Date().toISOString(),data:S},null,1)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='honeymoon-backup-'+todayISO()+'.json';a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),3000);toast('Backup downloaded');
@@ -1582,16 +1939,18 @@ function vOut(){
    r.onload=()=>{try{const j=JSON.parse(r.result);
     if(!j.data)throw 0;
     if(!confirm('Restore this backup? It replaces everything currently on this device.'))return;
-    S=Object.assign({done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{}},j.data);
+    S=Object.assign({done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{},cards:[]},j.data);
     save();render();toast('Backup restored');
    }catch(e){toast('That file is not a Larch & Canyon backup')}};
    r.readAsText(f)};
   i.click();
  };
- $('#wipe').onclick=()=>{
+ $('#wipe').onclick=async()=>{
   if(!confirm('Erase everything stored on this device? This cannot be undone.'))return;
   if(!confirm('Really sure? Download a backup first if you might want it back.'))return;
-  S={done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{},v:1};
+  for(const k of Object.keys(Photos.url)){URL.revokeObjectURL(Photos.url[k]);await IDB.del(k)}
+  Photos.url={};
+  S={done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{},cards:[],v:1};
   save();render();toast('All data erased');
  };
 }
@@ -1636,7 +1995,7 @@ function printPack(){
 function render(){
  const y=window.scrollY;
  header();
- ({now:vNow,route:vRoute,book:vBook,pack:vPack,scrap:vScrap,money:vMoney,out:vOut}[view]||vNow)();
+ Promise.resolve(({now:vNow,route:vRoute,book:vBook,pack:vPack,scrap:vScrap,money:vMoney,out:vOut}[view]||vNow)()).catch(e=>console.warn(e));
  requestAnimationFrame(()=>window.scrollTo(0,y));
 }
 if('serviceWorker'in navigator&&location.protocol==='https:'){
@@ -1644,10 +2003,20 @@ if('serviceWorker'in navigator&&location.protocol==='https:'){
 }
 (async function init(){
  const m=await Store.load();
- S=Object.assign({done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{},v:1},m||{});
+ S=Object.assign({done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{},cards:[],v:1},m||{});
 
  Sync.loadCfg();
+ FX.load();FX.refresh().then(()=>{if(view==='money')render()});
+ try{
+  await IDB.open();
+  await Photos.loadAll();
+  if(navigator.storage&&navigator.storage.persist){
+   Photos.persisted=await navigator.storage.persisted?await navigator.storage.persisted():false;
+   if(!Photos.persisted)Photos.persisted=await navigator.storage.persist().catch(()=>false);
+  }
+ }catch(e){console.warn('photo store unavailable',e)}
  buildNav();render();
+ migratePhotos().then(n=>{if(n)render()}).catch(e=>console.warn('migration',e));
  const chip=document.getElementById('syncchip');
  if(chip)chip.onclick=()=>{if(Sync.on&&!Sync.busy)Sync.run();else syncSheet()};
  paintSync();

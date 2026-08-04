@@ -31,6 +31,11 @@ Local-first: every edit saves to the device immediately, so the app works with
 no signal. If GitHub sync is connected, edits are merged into a private data
 repo and shared with the other phone. Without sync it is device-only.
 
+Small state (bookings, ticks, notes) sits in localStorage — a few kilobytes.
+Photos are Blobs in IndexedDB, so capacity is your device's free space rather
+than the ~5 MB localStorage limit. Synced photos also live in the data repo and
+are re-downloaded on any device that needs them.
+
 **Export → Download backup** writes a JSON file with everything in it. Do that
 regularly, and after any large edit. That file is also how you move your data to
 another device: open the app there and use **Restore from file**.
