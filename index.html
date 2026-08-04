@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1B2A24">
+<title>Larch &amp; Canyon — Kenny &amp; Hershania, Sep–Oct 2026</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="assets/icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1B2A24; --ink-2:#31423A; --paper:#FBF9F4; --card:#FFFFFF;
+  --larch:#D9A441; --canyon:#B4593A; --glacier:#3F7285; --stone:#6E7A73;
+  --line:#E2E0D6; --line-2:#CFCEC2; --ok:#4A7C59; --warn:#C4791F;
+  --sh:0 1px 2px rgba(27,42,36,.05),0 4px 14px rgba(27,42,36,.05);
+  --d:'Bricolage Grotesque',system-ui,sans-serif;
+  --b:'Inter',system-ui,-apple-system,sans-serif;
+  --m:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--b);font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;padding-bottom:76px}
+h1,h2,h3,h4{font-family:var(--d);margin:0;letter-spacing:-.015em;line-height:1.1}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+a{color:var(--glacier)}
+.mono{font-family:var(--m);font-variant-numeric:tabular-nums}
+
+/* ---------- topo backdrop: the signature texture ---------- */
+.topo{position:fixed;inset:0;z-index:-1;opacity:.055;pointer-events:none;
+  background-image:repeating-radial-gradient(circle at 22% 14%,transparent 0 21px,var(--ink) 21px 22px),
+  repeating-radial-gradient(circle at 82% 74%,transparent 0 27px,var(--ink) 27px 28px)}
+
+/* ---------- header ---------- */
+header{position:sticky;top:0;z-index:40;background:var(--ink);color:#F4F1E6;
+  padding:10px 14px calc(10px + env(safe-area-inset-top)) 14px;
+  padding-top:calc(10px + env(safe-area-inset-top))}
+.hrow{display:flex;align-items:center;gap:10px;max-width:1080px;margin:0 auto}
+.brand{font-family:var(--d);font-weight:800;font-size:16px;letter-spacing:-.02em;flex:1;min-width:0}
+.brand small{display:block;font-family:var(--m);font-weight:400;font-size:9.5px;
+  letter-spacing:.13em;text-transform:uppercase;color:#9DB0A6;margin-top:2px}
+.hstat{font-family:var(--m);font-size:10px;text-align:right;color:#9DB0A6;line-height:1.35;white-space:nowrap}
+.chip{display:inline-block;margin-top:4px;font-family:var(--m);font-size:8.5px;letter-spacing:.07em;
+  text-transform:uppercase;padding:2.5px 7px;border-radius:20px;background:#2C4038;color:#9DB0A6;
+  border:1px solid #3A4C43;white-space:nowrap}
+.chip.good{color:#8FC79E;border-color:#3E6A4C}
+.chip.bad{color:#E9A18C;border-color:#7A4234}
+.chip.busy{color:var(--larch);border-color:#6B5220}
+@keyframes pul{50%{opacity:.45}}
+.chip.busy{animation:pul 1.1s ease-in-out infinite}
+.hstat b{display:block;font-family:var(--d);font-size:19px;color:var(--larch);font-weight:800}
+
+/* ---------- nav ---------- */
+nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(251,249,244,.94);
+  backdrop-filter:blur(12px);border-top:1px solid var(--line-2);
+  display:flex;padding:5px 3px calc(5px + env(safe-area-inset-bottom)) 3px;
+  overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{flex:1 0 auto;min-width:60px;padding:5px 6px 4px;border-radius:9px;text-align:center;
+  color:var(--stone);font-size:9.5px;font-weight:600;letter-spacing:.03em;line-height:1.25}
+nav button svg{display:block;margin:0 auto 2px;width:19px;height:19px;stroke-width:1.7;
+  stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round}
+nav button.on{color:var(--ink);background:#EFEDE3}
+nav button.on svg{stroke:var(--canyon)}
+
+main{max-width:1080px;margin:0 auto;padding:14px 13px 24px}
+.view{display:none;animation:fade .22s ease}
+.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- primitives ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:13px;
+  box-shadow:var(--sh);margin-bottom:12px;overflow:hidden}
+.pad{padding:13px 14px}
+.eyebrow{font-family:var(--m);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--stone);margin-bottom:5px}
+.sect-h{display:flex;align-items:baseline;gap:9px;margin:20px 0 9px}
+.sect-h h2{font-size:21px;font-weight:800}
+.sect-h .n{font-family:var(--m);font-size:10.5px;color:var(--stone);margin-left:auto;text-align:right;max-width:52%;line-height:1.35}
+.btn{background:var(--ink);color:#F4F1E6;border-radius:9px;padding:8px 14px;
+  font-weight:600;font-size:13.5px;display:inline-flex;align-items:center;gap:6px;
+  transition:transform .12s,opacity .12s}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line-2)}
+.btn.sm{padding:5px 10px;font-size:12px;border-radius:7px}
+.btn.warn{background:var(--canyon)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+input,select,textarea{width:100%;border:1px solid var(--line-2);border-radius:8px;
+  padding:8px 10px;background:#fff;font-size:14.5px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--glacier);outline-offset:1px}
+label.f{display:block;margin-bottom:9px}
+label.f span{display:block;font-family:var(--m);font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--stone);margin-bottom:3px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.tag{display:inline-block;font-family:var(--m);font-size:9.5px;letter-spacing:.07em;
+  text-transform:uppercase;padding:2.5px 7px;border-radius:5px;background:#EFEDE3;color:var(--ink-2)}
+.tag.larch{background:#FAF0DA;color:#8A6415}
+.tag.canyon{background:#F7E7E1;color:#8A3D24}
+.tag.glacier{background:#E2EEF2;color:#2B5060}
+.tag.ok{background:#E4EFE6;color:#2F5B3B}
+.empty{text-align:center;padding:34px 18px;color:var(--stone)}
+.empty h3{font-size:17px;color:var(--ink);margin-bottom:5px}
+.empty p{font-size:13.5px;max-width:290px;margin:0 auto}
+.hint{font-size:12.5px;color:var(--stone);line-height:1.45}
+
+/* ---------- NOW rail: the signature element ---------- */
+.now{background:var(--ink);color:#F4F1E6;border-radius:15px;padding:16px;margin-bottom:14px;
+  position:relative;overflow:hidden}
+.now:after{content:'';position:absolute;right:-46px;top:-46px;width:150px;height:150px;
+  border-radius:50%;background:radial-gradient(circle,rgba(217,164,65,.2),transparent 70%)}
+.now .lbl{font-family:var(--m);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--larch)}
+.now h2{font-size:25px;font-weight:800;margin:5px 0 3px}
+.now .sub{color:#A9BBB1;font-size:13px}
+.rail{margin-top:14px;border-left:2px solid #3A4C43;padding-left:15px;position:relative}
+.rail .ri{position:relative;padding:7px 0;display:flex;gap:11px;align-items:flex-start}
+.rail .ri:before{content:'';position:absolute;left:-21px;top:13px;width:9px;height:9px;
+  border-radius:50%;background:#3A4C43;border:2px solid var(--ink)}
+.rail .ri.now-i:before{background:var(--larch);box-shadow:0 0 0 4px rgba(217,164,65,.22)}
+.rail .ri.done{opacity:.42}
+.rail .ri .t{font-family:var(--m);font-size:11.5px;color:var(--larch);min-width:40px;padding-top:1px}
+.rail .ri .x{font-size:13.5px;line-height:1.4}
+.rail .ri.now-i .x{font-weight:600}
+.cd{font-family:var(--m);font-size:11px;color:var(--larch);margin-top:2px}
+
+/* ---------- weather ---------- */
+.wx{display:flex;gap:9px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:none}
+.wx::-webkit-scrollbar{display:none}
+.wxc{flex:0 0 auto;width:75px;background:var(--card);border:1px solid var(--line);
+  border-radius:10px;padding:9px 6px;text-align:center}
+.wxc .d{font-family:var(--m);font-size:9.5px;color:var(--stone);letter-spacing:.05em}
+.wxc .i{font-size:20px;margin:3px 0}
+.wxc .hi{font-family:var(--d);font-weight:800;font-size:16px}
+.wxc .lo{font-family:var(--m);font-size:11px;color:var(--stone)}
+.wxc.est{border-style:dashed;background:#FDFCF8}
+
+/* ---------- day ---------- */
+.day{border:1px solid var(--line);border-radius:13px;background:var(--card);
+  margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)}
+.day.today{border-color:var(--larch);box-shadow:0 0 0 2px rgba(217,164,65,.16),var(--sh)}
+.dh{display:flex;gap:11px;align-items:center;padding:12px 13px;width:100%;text-align:left}
+.dnum{font-family:var(--d);font-weight:800;font-size:15px;color:#fff;background:var(--ink-2);
+  min-width:38px;height:38px;border-radius:9px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;line-height:1;flex:0 0 auto}
+.dnum small{font-family:var(--m);font-size:8px;font-weight:400;color:#A9BBB1;margin-top:1px}
+.day.today .dnum{background:var(--larch);color:var(--ink)}
+.day.today .dnum small{color:#6B4E10}
+.dt{flex:1;min-width:0}
+.dt h3{font-size:15.5px;font-weight:600}
+.dt p{font-size:11.5px;color:var(--stone);margin:2px 0 0;font-family:var(--m)}
+.chev{color:var(--stone);transition:transform .2s;flex:0 0 auto}
+.day.open .chev{transform:rotate(180deg)}
+.dbody{display:none;border-top:1px solid var(--line);padding:11px 13px 14px}
+.day.open .dbody{display:block}
+.prog{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:5px}
+.prog i{display:block;height:100%;background:var(--ok);transition:width .3s}
+
+/* ---------- schedule item ---------- */
+.si{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #F0EEE6;align-items:flex-start}
+.si:last-child{border-bottom:none}
+.si .tt{font-family:var(--m);font-size:11.5px;font-weight:600;color:var(--ink-2);
+  min-width:41px;padding-top:2px;flex:0 0 auto}
+.si.key .tt{color:var(--canyon)}
+.si .bd{flex:1;min-width:0}
+.si .bd b{font-weight:600;font-size:14px}
+.si .bd .no{color:var(--stone);font-size:12.5px;display:block;margin-top:2px;line-height:1.45}
+.si.done .bd b,.si.done .bd .no{text-decoration:line-through;opacity:.45}
+.ck{width:21px;height:21px;border:1.8px solid var(--line-2);border-radius:6px;flex:0 0 auto;
+  margin-top:1px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.ck.on{background:var(--ok);border-color:var(--ok)}
+.ck svg{width:12px;height:12px;stroke:#fff;stroke-width:3;fill:none;opacity:0}
+.ck.on svg{opacity:1}
+
+/* ---------- photos ---------- */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:7px;margin-top:9px}
+.pslot{aspect-ratio:3/4;border:1.5px dashed var(--line-2);border-radius:9px;background:#FDFCF8;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:6px;text-align:center;position:relative;overflow:hidden;cursor:pointer}
+.pslot:hover{border-color:var(--glacier);background:#F6FAFB}
+.pslot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pslot .cap{position:absolute;left:0;right:0;bottom:0;padding:14px 6px 5px;
+  background:linear-gradient(transparent,rgba(27,42,36,.85));color:#fff;font-size:10px;
+  font-weight:600;text-align:left;line-height:1.25}
+.pslot .ph{font-size:9.5px;color:var(--stone);line-height:1.3;font-family:var(--m)}
+.pslot .plus{font-size:19px;color:var(--line-2)}
+.pdel{position:absolute;top:4px;right:4px;width:21px;height:21px;border-radius:6px;
+  background:rgba(27,42,36,.72);color:#fff;font-size:13px;display:flex;
+  align-items:center;justify-content:center;z-index:2}
+
+/* ---------- misc ---------- */
+.meter{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin:6px 0 3px}
+.meter i{display:block;height:100%;background:var(--glacier);transition:width .3s}
+.meter i.hi{background:var(--warn)}
+.meter i.max{background:var(--canyon)}
+.alert{border-left:3px solid var(--canyon);background:#FCF3F0;padding:9px 11px;
+  border-radius:0 8px 8px 0;font-size:12.5px;margin:8px 0;line-height:1.45}
+.alert.ok{border-color:var(--ok);background:#EFF5F0}
+.alert.info{border-color:var(--glacier);background:#EFF5F7}
+.alert b{display:block;margin-bottom:2px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sp{flex:1}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(27,42,36,.55);
+  display:none;align-items:flex-end;justify-content:center;padding:0}
+.modal.on{display:flex}
+.sheet{background:var(--paper);width:100%;max-width:560px;max-height:88vh;overflow-y:auto;
+  border-radius:17px 17px 0 0;padding:17px 16px calc(22px + env(safe-area-inset-bottom));
+  animation:up .24s cubic-bezier(.2,.9,.3,1)}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+.sheet h3{font-size:19px;font-weight:800;margin-bottom:3px}
+.grip{width:34px;height:4px;background:var(--line-2);border-radius:2px;margin:0 auto 13px}
+.toast{pointer-events:none;position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(90px);
+  background:var(--ink);color:#F4F1E6;padding:9px 17px;border-radius:22px;font-size:13.5px;
+  z-index:200;transition:transform .28s cubic-bezier(.2,.9,.3,1);white-space:nowrap;
+  max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+.toast.on{transform:translateX(-50%) translateY(0)}
+.mapimg{width:100%;border-radius:10px;border:1px solid var(--line);display:block}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;
+  border-bottom:1px solid #F0EEE6;font-size:13.5px}
+.kv:last-child{border:none}
+.kv .k{color:var(--stone)}
+.kv .v{font-family:var(--m);font-weight:600;text-align:right}
+details.acc{border:1px solid var(--line);border-radius:11px;background:var(--card);margin-bottom:9px}
+details.acc>summary{padding:11px 13px;font-weight:600;cursor:pointer;list-style:none;
+  display:flex;align-items:center;gap:8px;font-size:14.5px}
+details.acc>summary::-webkit-details-marker{display:none}
+details.acc>summary:after{content:'+';margin-left:auto;color:var(--stone);font-size:17px}
+details.acc[open]>summary:after{content:'−'}
+details.acc .ab{padding:0 13px 13px}
+
+@media(min-width:760px){
+  body{padding-bottom:0}
+  nav{position:sticky;top:58px;bottom:auto;border-top:none;border-bottom:1px solid var(--line-2);
+    justify-content:center;padding:5px}
+  nav button{flex:0 0 auto;min-width:auto;padding:6px 13px;display:flex;align-items:center;gap:6px;font-size:12.5px}
+  nav button svg{margin:0;width:16px;height:16px}
+  main{padding:18px 20px 40px}
+  .toast{bottom:26px}
+  .modal{align-items:center;padding:20px}
+  .sheet{border-radius:15px;max-height:82vh}
+}
+
+@media print{
+  body{padding:0;background:#fff;font-size:10.5pt}
+  header,nav,.topo,.noprint,.btn{display:none!important}
+  .view{display:none!important}
+  .view.printing{display:block!important}
+  .card,.day{break-inside:avoid;box-shadow:none;border-color:#ccc}
+  .dbody{display:block!important}
+  @page{size:A4;margin:15mm}
+}
+</style>
+</head>
+<body>
+<div class="topo"></div>
+
+<header>
+ <div class="hrow">
+  <div class="brand">Larch &amp; Canyon<small id="hsub">Kenny &amp; Hershania · Sep–Oct 2026</small></div>
+  <div class="hstat"><b id="hcount">—</b><span id="hlabel">to departure</span>
+   <button id="syncchip" class="chip">local only</button></div>
+ </div>
+</header>
+
+<nav id="nav"></nav>
+<main id="main"></main>
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="filepick" accept="image/*" style="display:none" multiple>
+<script>
+/* ═══════════════════ TRIP DATA ═══════════════════ */
+const TRIP={start:'2026-09-14',end:'2026-10-06',pax:2,
+ flights:[
+  {code:'BR 238',from:'Jakarta (CGK)',to:'Taipei (TPE)',date:'2026-09-14',dep:'14:30',arr:'20:55',st:'booked'},
+  {code:'BR 26',from:'Taipei (TPE)',to:'Seattle (SEA)',date:'2026-09-14',dep:'23:40',arr:'19:40',st:'booked'},
+  {code:'WestJet',from:'Seattle (SEA)',to:'Calgary (YYC)',date:'2026-09-16',dep:'10:30',arr:'13:10',st:'tobook'},
+  {code:'WestJet',from:'Calgary (YYC)',to:'San Francisco (SFO)',date:'2026-09-21',dep:'10:00',arr:'12:00',st:'tobook'},
+  {code:'BR 15',from:'Los Angeles (LAX)',to:'Taipei (TPE)',date:'2026-10-05',dep:'00:50',arr:'05:45',st:'booked'},
+  {code:'BR 237',from:'Taipei (TPE)',to:'Jakarta (CGK)',date:'2026-10-06',dep:'09:00',arr:'13:20',st:'booked'}]};
+
+const LOC={
+ sea:{n:'Seattle',a:'Washington',lat:47.606,lon:-122.332,cl:[12,21]},
+ yyc:{n:'Calgary',a:'Alberta',lat:51.045,lon:-114.058,cl:[4,17]},
+ cmr:{n:'Canmore',a:'Alberta',lat:51.089,lon:-115.348,cl:[-2,15]},
+ sfo:{n:'San Francisco',a:'California',lat:37.775,lon:-122.419,cl:[14,24]},
+ yos:{n:'Yosemite Valley',a:'California',lat:37.749,lon:-119.587,cl:[3,25]},
+ lnp:{n:'Lone Pine',a:'Owens Valley',lat:36.606,lon:-118.064,cl:[8,26]},
+ dvl:{n:'Death Valley',a:'California',lat:36.462,lon:-116.867,cl:[25,40]},
+ lvs:{n:'Las Vegas',a:'Nevada',lat:36.115,lon:-115.173,cl:[20,33]},
+ zio:{n:'Springdale',a:'Zion NP',lat:37.188,lon:-112.998,cl:[12,30]},
+ bry:{n:'Bryce Canyon',a:'Utah',lat:37.623,lon:-112.167,cl:[-2,18]},
+ pge:{n:'Page',a:'Arizona',lat:36.915,lon:-111.456,cl:[15,30]},
+ lax:{n:'Los Angeles',a:'California',lat:34.052,lon:-118.244,cl:[16,27]}};
+
+/* schedule item: [time, title, note, flag]  flag: k=key moment, b=booking-linked */
+const DAYS=[
+{d:'2026-09-14',t:'Arrival',leg:'Seattle',base:'sea',stay:'Seattle — Belltown / Downtown',drive:'—',sr:'06:49',ss:'19:25',
+ s:[['14:30','BR 238 departs Jakarta','',''],['20:55','Arrive Taipei','2h45 layover, Terminal 2',''],
+ ['23:40','BR 26 departs Taipei','',''],['19:40','Land Seattle–Tacoma','Same calendar day — you cross the date line. Allow 60–90 min for immigration; first entry on a new visa.','k'],
+ ['21:00','Link light rail to Westlake','Connected to the terminal by skybridge, ~40 min, $3/pax',''],
+ ['21:45','Check in, shower','','b'],['22:15','Late supper','Dick\u2019s Drive-In, Capitol Hill runs to 02:00',''],
+ ['23:00','Sleep — force it','Jakarta is 14h ahead. Landing 19:40 is 09:40 to your body. Melatonin, black out the room.','k']],
+ ph:[['Pike Place Market','Downtown Seattle'],['Kerry Park skyline','Queen Anne']]},
+
+{d:'2026-09-15',t:'Seattle — one full day',leg:'Seattle',base:'sea',stay:'Seattle — Belltown / Downtown',drive:'—',sr:'06:50',ss:'19:22',
+ s:[['06:30','Wake','You\u2019ll be up anyway',''],['07:00','Breakfast','Hotel, or hold out for Pike Place',''],
+ ['08:30','Ship two cases — UPS Store, Downtown','UPS Ground to your aunt in San Francisco. Allow 40 min. Photograph contents, keep tracking numbers.','k'],
+ ['09:30','Pike Place Market','Original Starbucks (20–40 min queue), Piroshky Piroshky, Beecher\u2019s, Gum Wall, Post Alley',''],
+ ['11:30','Lunch — Pike Place Chowder','Post Alley. Go before noon; the queue doubles after.',''],
+ ['12:30','Pioneer Square','Occidental Square, the pergola, Smith Tower',''],
+ ['14:30','Suzzallo Library, UW campus','Red Square, Drumheller Fountain. ~20 min each way by Uber.',''],
+ ['18:30','Kerry Park, Queen Anne','Golden hour. Skyline, Space Needle and Rainier in one frame.','k'],
+ ['19:45','Dinner in Queen Anne','Toulouse Petit or How to Cook a Wolf','']],
+ ph:[['Suzzallo Library','UW campus'],['Pioneer Square','Downtown Seattle']]},
+
+{d:'2026-09-16',t:'Seattle → Calgary → Canmore',leg:'Canada',base:'cmr',stay:'Canmore Airbnb — 4 nights',drive:'1h45',sr:'07:15',ss:'19:47',
+ s:[['06:00','Wake','',''],['07:15','Check out','',''],
+ ['07:45','To Seattle–Tacoma International','Link light rail, or Uber ~25 min $45 with two cases',''],
+ ['08:30','Check in — WestJet','International departure, allow 90 min','b'],
+ ['13:10','Land Calgary International (YYC)','Clocks forward 1 hour. Immigration + baggage 45–60 min.','k'],
+ ['14:15','Collect rental car','Compact or sedan, ~30 min at the counter','b'],
+ ['14:50','CROSSIRON MILLS, Balzac','7.5 km north of the airport on Highway 2. adidas + Nike factory outlets, lululemon, Arc\u2019teryx, Columbia, Under Armour, Bass Pro. Open to 21:00, 6,000 free spaces.','k'],
+ ['15:00','Guest Services — free VIP Visitor Card','Ranch Neighbourhood, Entry 2. Photo ID with an address 60+ km from Calgary; your passport qualifies.',''],
+ ['16:45','Bear spray at Bass Pro Shops','~CAD 45–55. Saves hunting for it in Canmore after the shops shut.','k'],
+ ['17:15','Depart for Canmore','~1h30 from CrossIron',''],
+ ['18:45','Arrive Canmore, Alberta','Check in to the Airbnb','b'],
+ ['19:30','Save-On-Foods, Canmore','Open to 22:00. Breakfasts + picnic lunches for 4 days, CAD 150–200.','k'],
+ ['20:30','Late dinner on Main Street','','']],
+ ph:[['CrossIron Mills','Balzac, Alberta'],['Canmore Main Street','Bow Valley']]},
+
+{d:'2026-09-17',t:'Banff townsite',leg:'Canada',base:'cmr',stay:'Canmore Airbnb',drive:'1h30',sr:'07:17',ss:'19:44',
+ s:[['07:30','Breakfast at the Airbnb','Cook. Make sandwiches for later.',''],
+ ['09:00','Buy the park pass','Gate or Banff visitor centre, ~CAD 22/day for two','k'],
+ ['09:15','Bow Falls, Banff NP','Car park, five-minute walk',''],
+ ['10:00','Surprise Corner, Banff NP','The Fairmont seen across the river — the classic shot',''],
+ ['10:30','Fairmont Banff Springs','Walk the grounds, terrace and lobby. All free.',''],
+ ['12:15','Lunch on Banff Avenue','Or your picnic in Central Park by the river',''],
+ ['14:30','Lake Minnewanka loop','Two Jack Lake, Bankhead ghost town. Watch for elk and bighorn.',''],
+ ['18:15','Sunset at Vermilion Lakes','10 min from town. Mount Rundle reflected in still water — the best light of the week.','k'],
+ ['21:30','Prep tonight for tomorrow','Breakfast, thermos, sandwiches, layers. You leave at 05:45.','k']],
+ ph:[['Vermilion Lakes at sunset','Banff NP'],['Fairmont Banff Springs','Banff townsite']]},
+
+{d:'2026-09-18',t:'Moraine Lake & Larch Valley',leg:'Canada',base:'cmr',stay:'Canmore Airbnb',drive:'2h00',sr:'07:19',ss:'19:41',
+ s:[['04:45','Wake — the hard alarm of the trip','Worth it.','k'],
+ ['05:45','Depart for Lake Louise Park & Ride','1 Whitehorn Road. ~1 hour.',''],
+ ['07:00','Shuttle to Moraine Lake','25 minutes, no stops','b'],
+ ['07:30','Moraine Lake — the Rockpile','Morning light on the Valley of the Ten Peaks. Ten minutes up.','k'],
+ ['08:15','Larch Valley → Sentinel Pass','8.6 km, 725 m gain, 4–5 hrs. Golden larches with Ten Peaks behind. Check the trail report for a group-of-four restriction.','k'],
+ ['13:00','Picnic by the shore','',''],
+ ['14:00','Lake Connector shuttle to Lake Louise','One booking covers both lakes',''],
+ ['14:30','Lake Louise, Banff NP','Lakeshore path, Chateau, tea on the terrace',''],
+ ['18:30','Dinner out — you\u2019ve earned it','The Trough or Crazyweed','']],
+ ph:[['Moraine Lake','Valley of the Ten Peaks'],['Larch Valley in gold','Banff NP'],['Lake Louise','Banff NP']]},
+
+{d:'2026-09-19',t:'Johnston Canyon & Icefields Parkway',leg:'Canada',base:'cmr',stay:'Canmore Airbnb',drive:'3h40',sr:'07:21',ss:'19:39',
+ s:[['07:30','Breakfast, pack the picnic','',''],['08:15','Depart Canmore','',''],
+ ['09:05','Johnston Canyon, Banff NP','Lower Falls 1.1 km, Upper 2.7 km on steel catwalks. Allow 1h45. Car park fills by 10:30.','k'],
+ ['12:00','Lunch — Lake Louise village','Laggan\u2019s Mountain Bakery, a local institution',''],
+ ['14:00','Bow Lake, Banff NP','Lakeshore walk, Crowfoot Glacier above',''],
+ ['14:45','Peyto Lake, Banff NP','Park at Bow Summit, 10–15 min uphill. The wolf\u2019s-head shape and that glacial blue.','k'],
+ ['15:45','Turn around here','Athabasca is an hour further, inside Jasper — 3 hours extra for a glacier toe. Not worth it single-driver.','k'],
+ ['17:00','Morant\u2019s Curve (optional)','Railway, Bow River and mountains','']],
+ ph:[['Peyto Lake','Icefields Parkway'],['Johnston Canyon','Banff NP']]},
+
+{d:'2026-09-20',t:'Yoho National Park → Calgary',leg:'Canada',base:'yyc',stay:'Calgary airport hotel',drive:'4h00',sr:'07:22',ss:'19:36',
+ s:[['07:30','Breakfast, pack, clean up','Leave the bear spray with the host — it cannot fly.','k'],
+ ['08:30','Depart Canmore west','Through Banff and Lake Louise, over the Continental Divide',''],
+ ['10:00','Natural Bridge, Field BC','The Kicking Horse River carving through rock. 15 min.',''],
+ ['10:30','Emerald Lake canoe, Yoho NP','~CAD 120/hr. This is the honeymoon photograph — take it.','k'],
+ ['13:30','Takakkaw Falls, Yoho NP','254 m, Canada\u2019s second-highest. 30 min from Field up switchbacks.','k'],
+ ['15:00','Spiral Tunnels viewpoint','Time it right and a freight train enters and exits the mountain',''],
+ ['15:30','Depart for Calgary','~2h30',''],
+ ['18:00','Calgary airport hotel','Refuel the car before returning it tomorrow.','b'],
+ ['21:00','Pack for the US leg','Passports and visa paperwork to the top of the bag','k']],
+ ph:[['Emerald Lake','Yoho NP, BC'],['Takakkaw Falls','Yoho NP, BC']]},
+
+{d:'2026-09-21',t:'Calgary → San Francisco',leg:'California',base:'sfo',stay:'San Francisco — Fisherman\u2019s Wharf area',drive:'1h15',sr:'07:00',ss:'19:07',
+ s:[['06:00','Wake','',''],['07:00','Return the rental car at YYC','','b'],
+ ['07:30','Check in — allow two full hours','Calgary has US preclearance: you clear American immigration here in Canada. A proper border crossing with queues.','k'],
+ ['12:00','Land San Francisco International','You arrive as a domestic flight. Clocks back 1 hour.','k'],
+ ['12:30','Collect the rental car','Crossover class. Ask for a cargo cover — four cases from today.','b'],
+ ['13:45','Collect the two shipped cases from your aunt','Allow an hour including saying hello properly','k'],
+ ['15:45','Ferry Building, Embarcadero','Marketplace, oyster bar, coffee',''],
+ ['16:45','Fisherman\u2019s Wharf','Pier 39 sea lions, Musée Mécanique (free)',''],
+ ['18:45','Dinner in North Beach','Walk 15 min and eat properly rather than on the Wharf','']],
+ ph:[['Golden Gate Bridge','San Francisco'],['Fisherman\u2019s Wharf','Northern Waterfront']]},
+
+{d:'2026-09-22',t:'San Francisco — full day',leg:'California',base:'sfo',stay:'San Francisco',drive:'1h45',sr:'07:01',ss:'19:05',
+ s:[['08:30','Palace of Fine Arts, Marina District','Go now: empty, and the morning light on the rotunda is the point.','k'],
+ ['09:15','Marshall\u2019s Beach, Presidio','Park at Langdon Court, 0.8 mi down Batteries-to-Bluffs. The best view of the bridge there is.','k'],
+ ['10:45','Battery Spencer, Marin Headlands','Looking back at the city through the towers. Toll ~$9.',''],
+ ['11:30','Lombard Street, Russian Hill','',''],
+ ['12:15','Lunch — Swan Oyster Depot, Polk Gulch','Cash only, eighteen stools, 30–45 min queue, worth it',''],
+ ['14:45','City Hall, Civic Center','Walk into the rotunda — free and magnificent',''],
+ ['15:30','Painted Ladies, Alamo Square','',''],
+ ['16:15','Mission District','Clarion and Balmy Alley murals, Dolores Park',''],
+ ['17:45','Twin Peaks','The whole city. Windy and cold — bring a layer.','k'],
+ ['21:30','Repack: pull out the road bag','Six days of clothes for both of you in one case. You need it from the 25th.','k']],
+ ph:[['Marshall\u2019s Beach','Presidio'],['Painted Ladies','Alamo Square'],['Palace of Fine Arts','Marina District']]},
+
+{d:'2026-09-23',t:'San Francisco → Yosemite',leg:'Yosemite',base:'yos',stay:'El Portal — Yosemite View Lodge',drive:'4h00',sr:'06:56',ss:'19:03',
+ s:[['07:45','Depart San Francisco','I-580 east. Eastbound is the light direction at this hour.',''],
+ ['11:15','Merced — the supply stop','Save Mart or Raley\u2019s. Park picnic food for two days. In-park food is poor and expensive.','k'],
+ ['13:15','El Portal — drop bags','You pass it on the way in, which is the point of staying here','b'],
+ ['14:00','Arch Rock entrance — buy the park pass','$250 non-resident annual pass. Card only. Save to phone wallet AND keep paper — no signal at most gates.','k'],
+ ['14:30','Valley View (Gates of the Valley)','El Capitan, Bridalveil and the Merced from river level. Quieter than Tunnel View.',''],
+ ['16:00','El Capitan Meadow','Bring binoculars and look for climbers on the wall',''],
+ ['18:15','Tunnel View for sunset','Arrive by 18:15 for a parking space. The most photographed view in the park.','k'],
+ ['20:45','Prep for tomorrow — properly','Breakfast packed, thermos, warm layers, head torch, boots. You leave at 05:00.','k']],
+ ph:[['Tunnel View','Yosemite Valley'],['El Capitan','Yosemite Valley']]},
+
+{d:'2026-09-24',t:'Yosemite — the full day',leg:'Yosemite',base:'yos',stay:'El Portal',drive:'3h00',sr:'06:58',ss:'19:01',
+ s:[['04:45','Wake','','k'],['05:15','Drive to Glacier Point','Wawona Road to Chinquapin. ~1h20 in the dark; watch for deer.',''],
+ ['06:35','GLACIER POINT — SUNRISE','Half Dome opposite catching first light, valley floor 1,000 m below. ~3°C — wear everything. The best single moment of the trip.','k'],
+ ['08:15','Taft Point','2.2 km return, 45 min–1 hr. Vertical fissures dropping 1,000 m, no railings. Do not go near the edge in wind.','k'],
+ ['09:30','Washburn Point','A quieter Half Dome view on the drive back. 20 min.',''],
+ ['11:15','Mariposa Grove Welcome Plaza','Free shuttle in, 10 min','b'],
+ ['11:45','Grizzly Giant Loop','3.5 km, ~1h30. ~500 mature giant sequoias. Your Sequoia National Park substitute.','k'],
+ ['13:15','Picnic lunch at the Welcome Plaza','',''],
+ ['15:45','Vernal Fall footbridge','Mist Trail from Happy Isles, 2.6 km return. You now have time to push to the top of Vernal.',''],
+ ['17:30','Free time','Curry Village, Ansel Adams Gallery, or sit in El Capitan Meadow. This slack is deliberate.',''],
+ ['18:20','Last light — Sentinel Bridge','Half Dome reflected in the Merced','']],
+ ph:[['Glacier Point at sunrise','Yosemite NP'],['Taft Point fissures','Glacier Point Road'],['Mariposa Grove','South Yosemite']]},
+
+{d:'2026-09-25',t:'Tioga Pass → Lone Pine',leg:'Eastern Sierra',base:'lnp',stay:'Lone Pine motel',drive:'4h30',sr:'06:59',ss:'18:59',
+ s:[['07:45','Depart — up onto Tioga Road','The best drive in California, and it doubles as your transit day',''],
+ ['09:15','Olmsted Point, Tioga Road','Half Dome from behind, glacier-polished granite. 30 min.','k'],
+ ['10:00','Tenaya Lake, Tioga Road','2,485 m, white sand, absurdly clear water. 30 min.',''],
+ ['10:45','Tuolumne Meadows','Lembert Dome, Soda Springs. Store and grill usually shut mid-Sept — don\u2019t count on food.',''],
+ ['12:00','Tioga Pass (3,031 m)','Highest road pass in California and the park boundary','k'],
+ ['12:30','Lunch — Lee Vining','Whoa Nellie Deli, attached to the Mobil station. Genuinely famous.',''],
+ ['13:30','Mono Lake South Tufa','$3/pax, 1 mile loop. Limestone towers in a hypersaline lake. Unlike anywhere else.','k'],
+ ['15:45','Bishop, Owens Valley','Erick Schat\u2019s Bakkery for sheepherder bread',''],
+ ['17:15','Lone Pine — check in','Park by the room door; only the road bag comes inside','b'],
+ ['18:20','SUNSET AT MOBIUS ARCH','Alabama Hills. The arch frames Mt Whitney going pink.','k'],
+ ['21:15','Stargazing back in Alabama Hills','Almost no light pollution. Milky Way fully visible.',''],
+ ['22:00','Buy tomorrow\u2019s breakfast tonight','Nothing opens in Lone Pine before 07:00 and you leave at 06:30','k']],
+ ph:[['Mobius Arch & Mt Whitney','Alabama Hills'],['Mono Lake tufa','Mono Basin'],['Olmsted Point','Tioga Road']]},
+
+{d:'2026-09-26',t:'Death Valley → Las Vegas',leg:'Nevada',base:'lvs',stay:'Las Vegas — mid-Strip (night 1 of 2)',drive:'4h30',sr:'06:31',ss:'18:35',
+ s:[['05:45','Wake','The heat sets the schedule today, not you','k'],
+ ['06:30','Depart Lone Pine','CA-136 → CA-190',''],
+ ['08:00','Panamint Springs — fuel here','Expensive, but the alternatives are a long way off','k'],
+ ['08:45','Mesquite Flat Sand Dunes','30°C at this hour and perfectly pleasant. Walk out 15–20 min for clean sand.','k'],
+ ['10:20','Zabriskie Point, Death Valley NP','Five-minute walk up to eroded golden badlands','k'],
+ ['11:00','Badwater Basin','86 m below sea level, lowest point in North America. ~38°C — drink constantly.',''],
+ ['11:45','Artists Drive','9-mile one-way loop through mineral-stained hills',''],
+ ['15:15','LAS VEGAS — check in','','b'],
+ ['15:30','Bell desk: hand over the two large cases','Show them your 30 Sep reservation. Photograph the claim tickets. Nothing valuable or medical inside.','k'],
+ ['19:00','STRIP HELICOPTER NIGHT FLIGHT','Maverick or Sundance. Booked tonight deliberately — if wind grounds it, the 30th is your rebook slot.','k'],
+ ['20:45','Dinner — Spring Mountain Road','Chinatown. Best value eating in Las Vegas by a wide margin.','']],
+ ph:[['Zabriskie Point','Death Valley NP'],['Mesquite Flat Dunes','Stovepipe Wells'],['The Strip at night','Las Vegas']]},
+
+{d:'2026-09-27',t:'Las Vegas → Zion',leg:'Utah',base:'zio',stay:'Springdale',drive:'2h30',sr:'07:07',ss:'19:20',
+ s:[['07:00','Depart Las Vegas — 07:00 sharp','Sunday. The Zion visitor centre car park fills 10:00–11:00 and being an hour late costs you the day.','k'],
+ ['08:30','Cross into Utah — clocks forward','It is now 09:30','k'],
+ ['10:00','Springdale — drop bags','Hire neoprene socks and a stick here, ~$30/pax','b'],
+ ['10:15','Zion Canyon Visitor Center','Check the flash-flood forecast board before anything else','k'],
+ ['10:30','Canyon shuttle to Temple of Sinawava','Mandatory — private vehicles banned on the scenic drive',''],
+ ['11:00','Riverside Walk','3.5 km return, paved, hanging gardens. Takes you to the mouth of the Narrows.',''],
+ ['12:15','The Narrows, bottom-up','Walk up the river between 600 m walls. Go as far as feels good and turn around.','k'],
+ ['15:30','Emerald Pools','Lower Pool 1.9 km return and easy',''],
+ ['18:00','Canyon Overlook Trail, east Zion','1.6 km return, 45 min. Best view-for-effort in the park.','k'],
+ ['18:45','Sunset from Canyon Overlook','','k']],
+ ph:[['The Narrows','Zion Canyon'],['Canyon Overlook','East Zion']]},
+
+{d:'2026-09-28',t:'Zion → Bryce Canyon',leg:'Utah',base:'bry',stay:'Bryce Canyon City or Tropic',drive:'2h00',sr:'07:29',ss:'19:12',
+ s:[['08:30','Check out, east on Zion–Mt Carmel Highway','Switchbacks then a 1.7 km tunnel bored through the cliff in 1930','k'],
+ ['09:00','Checkerboard Mesa, east Zion','A completely different Zion from the canyon floor',''],
+ ['10:15','Red Canyon','UT-12 runs through two red rock arches cut for the road',''],
+ ['11:30','Lunch','Bryce Canyon Lodge, Valhalla Pizzeria, or a picnic at Sunset Point',''],
+ ['12:30','NAVAJO LOOP + QUEEN\u2019S GARDEN','4.6 km, 190 m, 2h30. Down Wall Street into the amphitheatre. The hike that matters at Bryce.','k'],
+ ['15:15','The scenic drive south','Bryce Point, Inspiration Point, Natural Bridge, Rainbow Point at 2,778 m',''],
+ ['18:00','Sunset at Sunset Point','The hoodoos go orange then deep red','k'],
+ ['19:30','Dinner in Tropic','Stone Hearth Grille — best food and views in the area. Book.',''],
+ ['21:00','Bring warm layers in from the car','Rim is 2,400–2,700 m, lows near 0°C. Coldest night of the trip.','k'],
+ ['21:30','Step outside and look up','Certified Dark Sky Park. On a clear night, 7,500 stars.','']],
+ ph:[['Bryce Amphitheater','Bryce Canyon NP'],['Navajo Loop switchbacks','Wall Street']]},
+
+{d:'2026-09-29',t:'Bryce → Page & Antelope Canyon',leg:'Arizona',base:'pge',stay:'Page, Arizona',drive:'2h30',sr:'07:24',ss:'18:20',
+ s:[['06:00','Wake — cold. Hot drink first.','','k'],
+ ['07:00','SUNRISE AT SUNRISE POINT','First light comes down the hoodoos from the tips. Thirty of the best minutes in the Southwest.','k'],
+ ['09:00','Check out — UT-12 → US-89 south','',''],
+ ['10:00','Kanab, Utah','Fuel and coffee',''],
+ ['11:30','Arrive Page — clocks back to 10:30 MST','Arizona does not observe daylight saving','k'],
+ ['11:00','Lunch in Page','Big John\u2019s Texas BBQ, in an old filling station. Brisket.',''],
+ ['12:05','BIIDI THE ARCH — Big Lake Trading Post','1501 Coppermine Rd, on AZ-98 — the same road as Antelope. Park at the Shell station, walk up the sand hill behind. Free, 20 min. Wear shoes you don\u2019t mind filling with sand.','k'],
+ ['12:30','LOWER ANTELOPE CANYON','Ken\u2019s Tours or Dixie Ellis. Phone or camera only — no bags, tripods or water bottles. CONFIRM WHICH CLOCK YOUR BOOKING USES.','k'],
+ ['14:30','Glen Canyon Dam Overlook & Wahweap','Lake Powell\u2019s scale is hard to grasp until you see it',''],
+ ['17:45','SUNSET AT HORSESHOE BEND','$10/vehicle, 2.4 km return on soft sand. Part of the rim has no railing.','k']],
+ ph:[['Lower Antelope Canyon','Navajo Nation'],['Horseshoe Bend','Page, Arizona'],['Biidi the Arch','Big Lake Trading Post']]},
+
+{d:'2026-09-30',t:'Page → Las Vegas',leg:'Nevada',base:'lvs',stay:'Las Vegas — same hotel as 26 Sep',drive:'4h30',sr:'06:33',ss:'18:28',
+ s:[['08:15','Check out — US-89 south → I-15','',''],
+ ['11:30','Virgin River Gorge','One of the most dramatic pieces of interstate in the country. No stop needed; just look.',''],
+ ['12:30','Lunch in St George, Utah','',''],
+ ['13:45','LAS VEGAS — check in, same hotel','','b'],
+ ['14:00','Collect the two cases from the bell desk','Open them and check the contents before you tip','k'],
+ ['14:30','REST. This is the deliberate rest afternoon.','Pool, spa, sleep. Banff, Yosemite, Tioga, Death Valley and the Utah loop back to back, one driver. Do not schedule over this.','k'],
+ ['17:30','Sphere, mid-Strip','Postcard From Earth, or a residency show. Book ahead.',''],
+ ['19:30','Dinner — the good one','Bacchanal Buffet, Wing Lei, Mott 32, or back to Chinatown',''],
+ ['23:00','Repack for Los Angeles','Anything you don\u2019t need for the last four days goes deep into the big cases','k']],
+ ph:[['Bellagio fountains','Mid-Strip'],['Sphere','Las Vegas']]},
+
+{d:'2026-10-01',t:'Las Vegas → Los Angeles',leg:'Los Angeles',base:'lax',stay:'LA Airbnb — Culver City or Los Feliz',drive:'4h00',sr:'06:37',ss:'18:38',
+ s:[['08:15','Check out, I-15 south','',''],
+ ['09:30','Fuel at Primm, Nevada state line','Nevada petrol is materially cheaper than California. Fill up before you cross.','k'],
+ ['11:15','Barstow, Mojave Desert — lunch','Peggy Sue\u2019s 50\u2019s Diner, or Del Taco #1, the original branch',''],
+ ['12:15','Elmer\u2019s Bottle Tree Ranch (optional)','Oro Grande. A roadside forest of welded bottle trees on old Route 66. Free, 20 min.',''],
+ ['15:00','Check in to the Airbnb, unload everything','','b'],
+ ['17:15','Lake Hollywood Park','The cleanest free view of the Hollywood sign, no crowds',''],
+ ['18:00','Griffith Observatory, Los Feliz','Free entry. Park below and walk up, or take the DASH shuttle.','k'],
+ ['18:38','Sunset, then stay for the lights','The point of Griffith is the half hour after sunset when the basin switches on','k'],
+ ['20:15','Dinner in Los Feliz or Silver Lake','','']],
+ ph:[['Griffith Observatory','Los Feliz'],['Hollywood Sign','Lake Hollywood Park']]},
+
+{d:'2026-10-02',t:'Universal Studios Hollywood',leg:'Los Angeles',base:'lax',stay:'LA Airbnb',drive:'1h30',sr:'06:38',ss:'18:36',
+ s:[['07:30','Breakfast at the Airbnb','Eat properly — park food is expensive and mediocre',''],
+ ['08:30','Drive to Universal City','~30 min. Park in the structure; keep the car empty.','k'],
+ ['09:00','Gates open — be there for it','First 90 minutes have the shortest queues of the day. Friday is deliberate: weekend crowds are 40–60% heavier.','k'],
+ ['09:05','Super Nintendo World','Open the app and claim a virtual queue slot the moment you\u2019re through the gate','k'],
+ ['10:30','Wizarding World','Forbidden Journey, Flight of the Hippogriff, butterbeer',''],
+ ['13:00','Lunch in park','Springfield for Krusty Burger, or Three Broomsticks',''],
+ ['14:00','The Studio Tour','60 min tram. Do it now — mid-afternoon is when this queue is shortest.','k'],
+ ['20:00','Dinner — Porto\u2019s Bakery, Burbank','Cheap, superb, 10 min away','']],
+ ph:[['Universal Studios','Universal City'],['Venice Canals','Venice']]},
+
+{d:'2026-10-03',t:'Warner Bros, Melrose & Beverly Hills',leg:'Los Angeles',base:'lax',stay:'LA Airbnb',drive:'1h30',sr:'06:39',ss:'18:34',
+ s:[['08:00','Breakfast — Porto\u2019s Bakery, Burbank','On the way to the studio. The queue moves fast despite appearances.',''],
+ ['09:15','WARNER BROS. STUDIO TOUR','3400 W Riverside Dr, Burbank. Three hours through a working studio — backlot streets, sound stages, prop house, the Friends set.','k'],
+ ['13:00','Lunch — Original Farmers Market, Fairfax','Food stalls since 1934, attached to The Grove',''],
+ ['14:15','Melrose Avenue, Fairfax District','Paul Smith pink wall at 8221 Melrose, vintage stores, street art','k'],
+ ['15:30','Greystone Mansion, Beverly Hills','Free — and it CLOSES AT 17:00. Scheduled early for that reason.','k'],
+ ['16:30','Rodeo Drive, Beverly Hills','Two Rodeo, the Beverly Wilshire, Beverly Gardens Park sign',''],
+ ['17:15','The Grove, Fairfax District','Valet here, so the car is attended',''],
+ ['20:30','Walk of Fame & TCL Chinese Theatre','Better after dark, and honestly a bit grubby. Forty-five minutes is enough.',''],
+ ['22:00','Repack tonight, fully','Tomorrow is checkout day and you want the morning to be simple','k']],
+ ph:[['Paul Smith pink wall','Melrose Avenue'],['Greystone Mansion','Beverly Hills']]},
+
+{d:'2026-10-04',t:'The last day — relaxed, safe, departure',leg:'Los Angeles',base:'lax',stay:'LAX-area hotel — El Segundo / Westchester',drive:'1h00',sr:'06:40',ss:'18:33',
+ s:[['09:30','Check out. Load all four cases.','','k'],
+ ['10:00','Venice Canals (optional)','25 min drive, 30 min walk. Quiet on a Sunday morning and on the way south.',''],
+ ['11:00','LAX-area hotel — drop all four cases','Routine and free for same-day arriving guests. This is the entire reason this booking exists.','k'],
+ ['12:00','Manhattan Beach Pier & The Strand','15 min from LAX, car now empty. Calm, low-crime, nothing like Venice. The right last morning.','k'],
+ ['13:00','Lunch in Manhattan Beach','',''],
+ ['15:30','Back to the hotel — check in properly','Shower, nap, final repack. Fifteen hours in economy starts tonight.','k'],
+ ['19:00','IN-N-OUT, 9149 S Sepulveda Blvd','Aircraft come in directly overhead every 90 seconds. The right last meal in America.','k'],
+ ['20:00','Fuel, then return the car at the LAX Rental Car Center','Shuttle to Tom Bradley International','k'],
+ ['21:50','EVA Air check-in opens for BR 15','','k']],
+ ph:[['Manhattan Beach Pier','South Bay'],['In-N-Out plane spotting','Westchester']]},
+
+{d:'2026-10-05',t:'Homeward',leg:'Home',base:'lax',stay:'In the air',drive:'—',sr:'06:41',ss:'18:31',
+ s:[['00:50','BR 15 DEPARTS LOS ANGELES','','k'],['05:45','Arrive Taipei (6 Oct)','3h15 layover',''],
+ ['09:00','BR 237 departs Taipei','',''],['13:20','Arrive Jakarta (6 October)','','k']],
+ ph:[]}
+];
+
+const PACKING=[
+ ['Documents',['Both passports (6+ months validity)','US visas','Canada visas','International Driving Permits ×2','America the Beautiful non-resident pass — printed + phone wallet','EVA + WestJet booking confirmations','Travel insurance policy','UPS tracking numbers','Aunt\u2019s address and phone, saved offline']],
+ ['Clothing — cold',['Fleece or warm mid-layer ×2','Windproof shell ×2','Hat and gloves — Glacier Point 3°C, Bryce rim near 0°C','Thermal base layer for the Bryce night']],
+ ['Clothing — hot',['Sun hat ×2','High-SPF sunscreen','Sunglasses','Light long sleeves for desert sun']],
+ ['Footwear',['Broken-in walking boots — do NOT break in new boots on 18 Sep','Trainers','Sandals for Vegas and LA']],
+ ['Gear',['Head torch ×2 — Glacier Point pre-dawn, Bryce sunrise, Horseshoe Bend after sunset','Refillable water bottles, 2 L capacity each','Power bank','Twin-USB car charger','Binoculars for El Capitan climbers','Dry bag for the Narrows']],
+ ['Health',['Blister plasters — above all else','Painkillers','Antihistamine','Rehydration salts','Any personal medication in carry-on, never in stored cases']],
+ ['Buy there, not here',['Bear spray — Bass Pro at CrossIron, 16 Sep. Cannot fly.','Neoprene socks — hire in Springdale, ~$30/pax','Hiking layers — CrossIron Mills, no provincial sales tax in Alberta','Groceries — Save-On-Foods Canmore, Merced, Vegas']],
+ ['Leave behind',['Poncho — waterfalls are dry in late September','Bug spray — mosquitoes finished at Banff\u2019s elevation','Formal clothes beyond one smart outfit each']]
+];
+
+const TODOS=[
+ ['Book now — free cancellation only',[
+  ['Canmore Airbnb, 16–19 Sep — Flexible or Moderate policy only','2026-08-08'],
+  ['Yosemite / El Portal, 23–24 Sep — phone rather than book online','2026-08-08'],
+  ['Moraine Lake Bus Company for 18 Sep','2026-08-08'],
+  ['Las Vegas hotel — 26 AND 30 Sep, same property, two reservations','2026-08-08'],
+  ['Email the Vegas hotel to confirm the bell desk will hold two cases','2026-08-10'],
+  ['WestJet SEA–YYC and YYC–SFO on 21 Sep — changeable fare','2026-08-08']]],
+ ['Book now — refundable rates',[
+  ['Seattle, 14–15 Sep','2026-08-15'],['Calgary airport hotel, 20 Sep','2026-08-15'],
+  ['San Francisco, 21–22 Sep — confirm the parking rate','2026-08-15'],
+  ['Lone Pine, 25 Sep','2026-08-15'],['Springdale, 27 Sep','2026-08-15'],
+  ['Bryce or Tropic, 28 Sep','2026-08-15'],['Page, 29 Sep','2026-08-15'],
+  ['LA Airbnb, 1–3 Oct — off-street parking confirmed in writing','2026-08-15'],
+  ['LAX-area hotel, 4 Oct — ask about a day-use rate','2026-08-15'],
+  ['Rental car SFO→LAX, 21 Sep–4 Oct — mid-size crossover','2026-08-15'],
+  ['Rental car Calgary, 16–21 Sep','2026-08-15'],
+  ['Third-party rental insurance (SLI + CDW) — saves $300–500 over the counter','2026-08-20']]],
+ ['Visa interview — 20 August',[
+  ['DS-160 confirmation pages, printed, both','2026-08-18'],
+  ['Appointment confirmation letters','2026-08-18'],['MRV fee receipts ($185 each)','2026-08-18'],
+  ['Bank statements Feb–Jul + running August print-out','2026-08-18'],
+  ['SPT Tahunan, both','2026-08-18'],
+  ['Nocturn Softwares — NIB, NPWP, client contracts','2026-08-18'],
+  ['Ichi Echa — business registration, NPWP','2026-08-18'],
+  ['Marriage certificate + Kartu Keluarga','2026-08-18'],
+  ['Property and vehicle documents','2026-08-18'],
+  ['Printed itinerary (use Export → Embassy pack)','2026-08-18'],
+  ['Leave phones in the car — no electronics, no storage on site','2026-08-20']]],
+ ['After the visas land (~27 Aug)',[
+  ['Lower Antelope Canyon, 29 Sep — confirm Page time vs Navajo time','2026-08-28'],
+  ['Warner Bros. Studio Tour, 3 Oct — earliest slot','2026-08-28'],
+  ['Universal Studios, 2 Oct — date-specific online','2026-08-28'],
+  ['Las Vegas helicopter, 26 Sep evening','2026-08-28'],
+  ['Emerald Lake canoe, 20 Sep','2026-09-01'],
+  ['Restaurant bookings: The Trough, Stone Hearth Grille, Seasons','2026-09-01'],
+  ['eSIM covering US + Canada','2026-09-05'],['Travel insurance','2026-09-05']]],
+ ['Before you fly',[
+  ['Buy the $250 non-resident park pass on Recreation.gov','2026-09-07'],
+  ['Save the pass to phone wallet AND print a paper copy','2026-09-07'],
+  ['Download offline maps: Banff, Yoho, Yosemite, Tioga, Death Valley, Zion, Bryce, Page, LA','2026-09-10'],
+  ['Notify the bank of US + Canada travel','2026-09-10'],
+  ['Ship the two Seattle cases deliberately under-packed — CrossIron is the best-value shopping','2026-09-10'],
+  ['Reconfirm every booking in one sitting','2026-09-11'],
+  ['Export a backup from this app','2026-09-12']]]
+];
+
+const BUDGET=[
+ ['Seattle — 2 nights, food, shipping',740,1010],['Canada — 5 nights, car, fuel, park fees, food',1570,2240],
+ ['WestJet SEA–YYC–SFO',750,800],['US rental car — 14 days, insurance, fuel',1460,2040],
+ ['US lodging — 14 nights incl. resort fees',2550,3760],['Park passes and entries',270,270],
+ ['US activities',820,1080],['US food — 14 days',1120,1680],['Miscellaneous',500,910]];
+</script>
+<script>
+/* ═══════════════════ STORAGE ═══════════════════
+   Works in two places: Claude artifacts (window.storage) and any
+   normal browser / GitHub Pages (localStorage). Same API either way. */
+const Store={
+  mem:{}, ready:false,
+  get remote(){return typeof window!=='undefined'&&window.storage&&typeof window.storage.get==='function'},
+  async load(){
+    try{
+      if(this.remote){
+        try{const r=await window.storage.get('trip');if(r&&r.value)this.mem=JSON.parse(r.value)}catch(e){this.mem={}}
+      }else{
+        const r=localStorage.getItem('larchcanyon');if(r)this.mem=JSON.parse(r);
+      }
+    }catch(e){console.warn('load failed',e);this.mem={}}
+    this.ready=true;return this.mem;
+  },
+  async save(){
+    const s=JSON.stringify(this.mem);
+    try{
+      if(this.remote){await window.storage.set('trip',s)}
+      else{localStorage.setItem('larchcanyon',s)}
+      return true;
+    }catch(e){
+      toast(e&&/quota/i.test(e.message||'')?'Storage full — remove some photos':'Could not save');
+      return false;
+    }
+  },
+  bytes(){try{return new Blob([JSON.stringify(this.mem)]).size}catch(e){return JSON.stringify(this.mem).length}}
+};
+const CAP=4.4*1024*1024; // practical browser ceiling
+
+let S={done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{},v:1};
+const save=()=>{Store.mem=S;Store.save()};
+
+/* ═══════════════════ HELPERS ═══════════════════ */
+const $=(s,r)=>(r||document).querySelector(s);
+const $$=(s,r)=>[...(r||document).querySelectorAll(s)];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,10);
+const fmtB=b=>b<1024?b+' B':b<1048576?(b/1024).toFixed(0)+' KB':(b/1048576).toFixed(1)+' MB';
+let tt;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2600)}
+function dObj(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
+function dLabel(s){return dObj(s).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
+function dShort(s){const o=dObj(s);return{dd:o.getDate(),mm:o.toLocaleDateString('en-GB',{month:'short'}).toUpperCase()}}
+function todayISO(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')}
+function daysBetween(a,b){return Math.round((dObj(b)-dObj(a))/864e5)}
+function mins(t){const[h,m]=t.split(':').map(Number);return h*60+m}
+function currentDayIdx(){const t=todayISO();const i=DAYS.findIndex(d=>d.d===t);return i}
+function tripPhase(){const t=todayISO();
+  if(t<TRIP.start)return{p:'before',n:daysBetween(t,TRIP.start)};
+  if(t>TRIP.end)return{p:'after',n:daysBetween(TRIP.end,t)};
+  return{p:'during',n:daysBetween(TRIP.start,t)+1}}
+
+/* ═══════════════════ WEATHER ═══════════════════
+   Live forecast from Open-Meteo when the date is inside the 16-day
+   window; baked seasonal ranges the rest of the time, clearly marked. */
+const WX={cache:{},
+ icon(c){if(c==null)return'○';if(c===0)return'☀';if(c<3)return'⛅';if(c<50)return'☁';
+   if(c<60)return'🌧';if(c<70)return'🌦';if(c<80)return'🌨';return'⛈'},
+ async fetch(loc,from,to){
+  const k=loc.lat+','+loc.lon+','+from;
+  if(this.cache[k])return this.cache[k];
+  try{
+   const u=`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}`
+    +`&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max`
+    +`&timezone=auto&start_date=${from}&end_date=${to}`;
+   const r=await fetch(u);if(!r.ok)throw 0;
+   const j=await r.json();this.cache[k]=j.daily;return j.daily;
+  }catch(e){return null}
+ }};
+
+/* ═══════════════════ IMAGE PIPELINE ═══════════════════
+   Resize + re-encode before storing. Browser storage is small, so
+   full-resolution photos would fill it after four or five images. */
+function processImage(file,maxPx,q){
+ return new Promise((res,rej)=>{
+  if(!file.type.startsWith('image/'))return rej(new Error('Images only — PDFs are too large for browser storage'));
+  const rd=new FileReader();
+  rd.onerror=()=>rej(new Error('Could not read that file'));
+  rd.onload=()=>{
+   const im=new Image();
+   im.onerror=()=>rej(new Error('That file is not a readable image'));
+   im.onload=()=>{
+    let{width:w,height:h}=im;const sc=Math.min(1,maxPx/Math.max(w,h));
+    w=Math.round(w*sc);h=Math.round(h*sc);
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(im,0,0,w,h);
+    res(c.toDataURL('image/jpeg',q));
+   };im.src=rd.result;
+  };rd.readAsDataURL(file);
+ });
+}
+let pickCb=null;
+function pickImage(cb,multi){pickCb=cb;const f=$('#filepick');f.multiple=!!multi;f.value='';f.click()}
+$('#filepick').addEventListener('change',async e=>{
+ const files=[...e.target.files];if(!files.length||!pickCb)return;
+ toast('Processing…');
+ for(const f of files){
+  try{const d=await processImage(f,1400,.72);await pickCb(d,f.name)}
+  catch(err){toast(err.message)}
+ }
+ pickCb=null;
+});
+
+/* ═══════════════════ NAV ═══════════════════ */
+const ICONS={
+ now:'<path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="5"/>',
+ route:'<path d="M4 19h6a4 4 0 0 0 0-8H8a4 4 0 0 1 0-8h8"/><circle cx="4" cy="19" r="2"/><circle cx="18" cy="4" r="2"/>',
+ book:'<path d="M4 4h10a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3z"/><path d="M17 7h3v13H7"/>',
+ pack:'<rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V4h8v3"/>',
+ scrap:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/>',
+ money:'<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4"/>',
+ out:'<path d="M12 3v12M8 7l4-4 4 4M4 17v3h16v-3"/>'};
+const VIEWS=[['now','Now','now'],['route','Itinerary','route'],['book','Bookings','book'],
+ ['pack','Lists','pack'],['scrap','Scrapbook','scrap'],['money','Budget','money'],['out','Export','out']];
+let view='now';
+function buildNav(){
+ $('#nav').innerHTML=VIEWS.map(([id,lab,ic])=>
+  `<button data-v="${id}" class="${id===view?'on':''}"><svg viewBox="0 0 24 24">${ICONS[ic]}</svg>${lab}</button>`).join('');
+ $$('#nav button').forEach(b=>b.onclick=()=>go(b.dataset.v));
+ $('#main').innerHTML=VIEWS.map(([id])=>`<section class="view${id===view?' on':''}" id="v-${id}"></section>`).join('');
+}
+function go(v){view=v;$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+ $$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));render();window.scrollTo(0,0)}
+
+/* ═══════════════════ HEADER ═══════════════════ */
+function header(){
+ const ph=tripPhase();
+ if(ph.p==='before'){$('#hcount').textContent=ph.n;$('#hlabel').textContent=ph.n===1?'day to go':'days to go'}
+ else if(ph.p==='during'){$('#hcount').textContent='D'+ph.n;$('#hlabel').textContent='of 22'}
+ else{$('#hcount').textContent='✓';$('#hlabel').textContent='trip complete'}
+}
+
+/* ═══════════════════ ITEM STATE ═══════════════════ */
+const openDays=new Set();
+const itemKey=(di,si)=>di+'.'+si;
+function itemTime(di,si){const o=S.items[itemKey(di,si)];return(o&&o.t)||DAYS[di].s[si][0]}
+function toggleItem(di,si){const k=itemKey(di,si);S.done[k]=!S.done[k];touch('done',k);save();render()}
+function dayProgress(di){const d=DAYS[di];let n=0;d.s.forEach((_,i)=>{if(S.done[itemKey(di,i)])n++});
+ return{n,total:d.s.length,pct:d.s.length?Math.round(n/d.s.length*100):0}}
+
+/* ═══════════════════ VIEW: NOW ═══════════════════ */
+async function vNow(){
+ const el=$('#v-now'),ph=tripPhase(),idx=currentDayIdx();
+ let h='';
+ if(ph.p==='before'){
+  const d=DAYS[0];
+  h+=`<div class="now"><div class="lbl">Departure</div>
+   <h2>${ph.n} ${ph.n===1?'day':'days'} to go</h2>
+   <div class="sub">BR 238 leaves Jakarta 14:30 on ${dLabel(TRIP.start)}</div>
+   <div class="rail">${nextTodos(4)}</div></div>`;
+  h+=countdownStrip();
+ }else if(ph.p==='after'){
+  h+=`<div class="now"><div class="lbl">Complete</div><h2>Welcome home</h2>
+   <div class="sub">22 days, 6 national parks, 3,555 km. Your scrapbook and receipts are still here.</div></div>`;
+ }else if(idx>=0){
+  h+=nowRail(idx);
+ }else{
+  h+=`<div class="now"><div class="lbl">In transit</div><h2>Between days</h2>
+   <div class="sub">No scheduled day matches today\u2019s date.</div></div>`;
+ }
+ h+=`<div class="sect-h"><h2>Weather</h2><span class="n" id="wxnote">loading</span></div>
+   <div class="wx" id="wxrow"></div>`;
+ if(idx>=0)h+=`<div class="sect-h"><h2>Today</h2></div>`+dayCard(idx,true);
+ else if(ph.p==='before')h+=`<div class="sect-h"><h2>First day</h2></div>`+dayCard(0,false);
+ h+=`<div class="sect-h"><h2>Route</h2></div>
+  <div class="card pad"><img class="mapimg" src="assets/maps/overview.png" alt="Full route map"
+   onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+  <p class="hint" style="display:none">Route map — place <b>assets/maps/overview.png</b> beside index.html to show it here.</p>
+  <p class="hint" style="margin-top:8px">Solid is driving, dashed is flying. Seattle → Calgary → San Francisco, then 3,555 km south to Los Angeles.</p></div>`;
+ el.innerHTML=h;
+ bindDays(el);
+ loadWeather();
+}
+function countdownStrip(){
+ const t=todayISO(),ms=[['2026-08-20','US visa interview'],['2026-09-14','Fly to Seattle'],['2026-09-16','Calgary + CrossIron'],['2026-09-21','San Francisco'],['2026-09-26','Las Vegas'],['2026-10-05','Fly home']];
+ return `<div class="card pad"><div class="eyebrow">Milestones</div>`+
+  ms.map(([d,l])=>{const n=daysBetween(t,d);
+   return `<div class="kv"><span class="k">${esc(l)}</span><span class="v">${n<0?'done':n===0?'today':n+'d'}</span></div>`}).join('')+`</div>`;
+}
+function nextTodos(n){
+ const all=[];TODOS.forEach(([g,items])=>items.forEach(([txt,due])=>{if(!S.todos[txt])all.push([txt,due,g])}));
+ all.sort((a,b)=>a[1]<b[1]?-1:1);
+ if(!all.length)return`<div class="ri"><div class="t">✓</div><div class="x">Everything on the list is done.</div></div>`;
+ return all.slice(0,n).map(([t,due])=>{
+  const dd=daysBetween(todayISO(),due);
+  return `<div class="ri${dd<0?' now-i':''}"><div class="t">${dd<0?'LATE':dd===0?'TODAY':dd+'d'}</div>
+   <div class="x">${esc(t)}</div></div>`}).join('');
+}
+function nowRail(idx){
+ const d=DAYS[idx],now=new Date(),cm=now.getHours()*60+now.getMinutes();
+ const items=d.s.map((it,i)=>({...{},t:itemTime(idx,i),title:it[1],i,m:mins(itemTime(idx,i))}));
+ items.sort((a,b)=>a.m-b.m);
+ let cur=-1;items.forEach((it,k)=>{if(it.m<=cm)cur=k});
+ const nxt=items[cur+1];
+ let cd='';
+ if(nxt){const diff=nxt.m-cm;cd=`<div class="cd">in ${diff>=60?Math.floor(diff/60)+'h '+(diff%60)+'m':diff+' min'}</div>`}
+ const win=items.slice(Math.max(0,cur-1),Math.min(items.length,cur+4));
+ return `<div class="now"><div class="lbl">Day ${idx+1} · ${esc(d.leg)}</div>
+  <h2>${esc(d.t)}</h2>
+  <div class="sub">${esc(LOC[d.base].n)}, ${esc(LOC[d.base].a)} · sunrise ${d.sr} · sunset ${d.ss}${d.drive!=='—'?' · '+d.drive+' driving':''}</div>
+  <div class="rail">${win.map(it=>{
+   const done=S.done[itemKey(idx,it.i)],isNow=items[cur]&&it.i===items[cur].i;
+   return `<div class="ri${isNow?' now-i':''}${done?' done':''}"><div class="t">${it.t}</div>
+    <div class="x">${esc(it.title)}${isNow&&nxt?cd:''}</div></div>`}).join('')}</div></div>`;
+}
+async function loadWeather(){
+ const row=$('#wxrow'),note=$('#wxnote');if(!row)return;
+ const ph=tripPhase(),idx=currentDayIdx();
+ const start=idx>=0?idx:0, slice=DAYS.slice(start,start+7).filter(d=>d.base);
+ // group consecutive days by base so we make few requests
+ const today=new Date(),horizon=new Date(today.getTime()+15*864e5);
+ let live=0;
+ const cells=await Promise.all(slice.map(async d=>{
+  const L=LOC[d.base],o=dObj(d.d),inWin=o>=new Date(today.getFullYear(),today.getMonth(),today.getDate())&&o<=horizon;
+  let hi=L.cl[1],lo=L.cl[0],code=null,est=true;
+  if(inWin){
+   const dl=await WX.fetch(L,d.d,d.d);
+   if(dl&&dl.temperature_2m_max&&dl.temperature_2m_max.length){
+    hi=Math.round(dl.temperature_2m_max[0]);lo=Math.round(dl.temperature_2m_min[0]);
+    code=dl.weather_code?dl.weather_code[0]:null;est=false;live++;
+   }
+  }
+  const s=dShort(d.d);
+  return `<div class="wxc${est?' est':''}"><div class="d">${s.dd} ${s.mm}</div>
+   <div class="i">${est?'≈':WX.icon(code)}</div>
+   <div class="hi">${hi}°</div><div class="lo">${lo}°</div>
+   <div class="d" style="margin-top:3px">${esc(L.n.slice(0,9))}</div></div>`;
+ }));
+ row.innerHTML=cells.join('');
+ note.textContent=live?`${live} live · rest seasonal`:'seasonal averages — live forecast from ~30 Aug';
+}
+
+/* ═══════════════════ DAY CARD ═══════════════════ */
+function dayCard(idx,open){
+ const d=DAYS[idx],p=dayProgress(idx),isT=d.d===todayISO(),s=dShort(d.d);
+ const L=LOC[d.base];
+ const isOpen=open||openDays.has(idx);
+ return `<div class="day${isT?' today':''}${isOpen?' open':''}" data-d="${idx}">
+  <button class="dh" data-toggle="${idx}">
+   <div class="dnum">${s.dd}<small>${s.mm}</small></div>
+   <div class="dt"><h3>${esc(d.t)}</h3>
+    <p>${esc(L.n)}, ${esc(L.a)}${d.drive!=='—'?' · '+d.drive:''} · ${p.n}/${p.total}</p>
+    <div class="prog"><i style="width:${p.pct}%"></i></div></div>
+   <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+  </button>
+  <div class="dbody">
+   <div class="row" style="margin-bottom:9px">
+    <span class="tag glacier">↑ ${d.sr}</span><span class="tag larch">↓ ${d.ss}</span>
+    <span class="tag">${esc(d.stay)}</span></div>
+   ${bookingBanner(idx)}
+   ${d.s.map((it,i)=>{
+    const done=S.done[itemKey(idx,i)],t=itemTime(idx,i),edited=S.items[itemKey(idx,i)];
+    return `<div class="si${it[3]==='k'?' key':''}${done?' done':''}">
+     <button class="ck${done?' on':''}" data-ck="${idx}.${i}" aria-label="Mark done">
+      <svg viewBox="0 0 24 24"><path d="m5 13 4 4L19 7"/></svg></button>
+     <button class="tt" data-time="${idx}.${i}" title="Adjust time">${t}${edited?'*':''}</button>
+     <div class="bd"><b>${esc(it[1])}</b>${it[2]?`<span class="no">${esc(it[2])}</span>`:''}</div>
+    </div>`}).join('')}
+   ${photoBlock(idx)}
+   <div class="row" style="margin-top:11px">
+    <button class="btn ghost sm" data-note="${idx}">${S.notes[idx]?'Edit note':'Add note'}</button>
+    <button class="btn ghost sm" data-addbk="${idx}">Add booking</button>
+   </div>
+   ${S.notes[idx]?`<div class="alert info" style="margin-top:9px"><b>Your note</b>${esc(S.notes[idx])}</div>`:''}
+  </div></div>`;
+}
+function photoBlock(idx){
+ const d=DAYS[idx];if(!d.ph||!d.ph.length)return'';
+ return `<div class="eyebrow" style="margin-top:13px">Photos — ${esc(LOC[d.base].n)}</div>
+  <div class="pgrid">${d.ph.map((p,i)=>{
+   const key=idx+'.'+i,img=S.photos[key];
+   const q=encodeURIComponent(p[0]+' '+p[1]);
+   return `<div class="pslot" data-photo="${key}" data-q="${q}">
+    ${img?`<img src="${img}" alt="${esc(p[0])}"><button class="pdel" data-delphoto="${key}">×</button>
+      <div class="cap">${esc(p[0])}</div>`
+     :`<div class="plus">+</div><div class="ph">${esc(p[0])}<br>${esc(p[1])}</div>`}
+   </div>`}).join('')}</div>
+  <p class="hint" style="margin-top:5px">Tap a slot to add your own photo. Long-press or use the search link in the sheet to find reference shots.</p>`;
+}
+function bookingBanner(idx){
+ const d=DAYS[idx],bs=S.bookings.filter(b=>b.date===d.d);
+ if(!bs.length)return'';
+ return bs.map(b=>{
+  let warn='';
+  if(b.type==='stay'&&b.checkin){
+   const arr=d.s.find(x=>/check in|arrive|drop bags/i.test(x[1]));
+   if(arr&&mins(arr[0])<mins(b.checkin)){
+    warn=`<br><b style="color:var(--canyon)">Check-in is ${b.checkin} but you arrive ${arr[0]}.</b> Ask about early check-in or bag drop.`;
+   }
+  }
+  return `<div class="alert ${warn?'':'ok'}"><b>${esc(b.name)}</b>
+   ${b.addr?esc(b.addr)+'<br>':''}${b.conf?'Ref '+esc(b.conf):''}
+   ${b.checkin?' · in '+b.checkin:''}${b.checkout?' · out '+b.checkout:''}${warn}
+   ${b.addr?`<br><a href="https://maps.google.com/?q=${encodeURIComponent(b.addr)}" target="_blank" rel="noopener">Open in Maps</a>`:''}</div>`;
+ }).join('');
+}
+function bindDays(root){
+ $$('[data-toggle]',root).forEach(b=>b.onclick=()=>{
+  const el=b.closest('.day'),i=+el.dataset.d;
+  el.classList.toggle('open');
+  el.classList.contains('open')?openDays.add(i):openDays.delete(i);
+ });
+ $$('[data-ck]',root).forEach(b=>b.onclick=e=>{e.stopPropagation();const[a,c]=b.dataset.ck.split('.');toggleItem(+a,+c)});
+ $$('[data-time]',root).forEach(b=>b.onclick=e=>{e.stopPropagation();editTime(b.dataset.time)});
+ $$('[data-photo]',root).forEach(b=>b.onclick=e=>{
+  if(e.target.dataset.delphoto)return;photoSheet(b.dataset.photo,decodeURIComponent(b.dataset.q))});
+ $$('[data-delphoto]',root).forEach(b=>b.onclick=e=>{e.stopPropagation();delete S.photos[b.dataset.delphoto];save();render();toast('Photo removed')});
+ $$('[data-note]',root).forEach(b=>b.onclick=()=>noteSheet(+b.dataset.note));
+ $$('[data-addbk]',root).forEach(b=>b.onclick=()=>bookingSheet(null,DAYS[+b.dataset.addbk].d));
+}
+
+/* ═══════════════════ VIEW: ITINERARY ═══════════════════ */
+let legFilter='all';
+function vRoute(){
+ const legs=[...new Set(DAYS.map(d=>d.leg))];
+ const maps={'Canada':'assets/maps/canada.png','California':'assets/maps/sierra.png','Yosemite':'assets/maps/sierra.png',
+  'Eastern Sierra':'assets/maps/sierra.png','Utah':'assets/maps/utah.png','Arizona':'assets/maps/utah.png',
+  'Nevada':'assets/maps/utah.png','Los Angeles':'assets/maps/la.png'};
+ let h=`<div class="row noprint" style="margin-bottom:11px;overflow-x:auto">
+  <button class="btn sm ${legFilter==='all'?'':'ghost'}" data-leg="all">All 22 days</button>
+  ${legs.map(l=>`<button class="btn sm ${legFilter===l?'':'ghost'}" data-leg="${esc(l)}">${esc(l)}</button>`).join('')}</div>`;
+ const shown=DAYS.map((d,i)=>[d,i]).filter(([d])=>legFilter==='all'||d.leg===legFilter);
+ let lastLeg=null;
+ shown.forEach(([d,i])=>{
+  if(d.leg!==lastLeg){
+   lastLeg=d.leg;
+   h+=`<div class="sect-h"><h2>${esc(d.leg)}</h2><span class="n">${DAYS.filter(x=>x.leg===d.leg).length} days</span></div>`;
+   if(maps[d.leg]&&(legFilter!=='all'||true))
+    h+=`<div class="card pad"><img class="mapimg" src="${maps[d.leg]}" alt="${esc(d.leg)} map"
+      onerror="this.parentElement.style.display='none'"></div>`;
+  }
+  h+=dayCard(i,false);
+ });
+ const el=$('#v-route');el.innerHTML=h;
+ $$('[data-leg]',el).forEach(b=>b.onclick=()=>{legFilter=b.dataset.leg;render()});
+ bindDays(el);
+}
+
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   GITHUB SYNC
+   Local-first. Every edit lands in this device immediately, so the
+   app works with no signal. Sync pushes to a PRIVATE data repo when
+   a network is available.
+
+   Merge strategy: every field carries its own timestamp, so two
+   devices editing different things both keep their work. Same field
+   edited on both within one sync window — newest wins.
+
+   The token is entered per device and stored locally. It is never
+   written into the repo.
+   ═══════════════════════════════════════════════════════════ */
+const CFGKEY='larchcanyon.gh';        // never synced, never committed
+const SYNCED=['done','items','bookings','photos','outfits','docs','todos','packing','spend','notes'];
+const BY_ID=['bookings','docs','spend'];   // arrays keyed by .id
+const STATE_PATH='data/state.json';
+const PHOTO_DIR='data/photos';
+
+const Sync={
+ cfg:null, busy:false, last:null, err:null, queued:false,
+
+ loadCfg(){try{this.cfg=JSON.parse(localStorage.getItem(CFGKEY)||'null')}catch(e){this.cfg=null}return this.cfg},
+ saveCfg(c){this.cfg=c;localStorage.setItem(CFGKEY,JSON.stringify(c))},
+ clearCfg(){this.cfg=null;localStorage.removeItem(CFGKEY)},
+ get on(){return!!(this.cfg&&this.cfg.token&&this.cfg.owner&&this.cfg.repo)},
+
+ api(path,opts){
+  const o=Object.assign({headers:{}},opts||{});
+  o.headers['Authorization']='Bearer '+this.cfg.token;
+  o.headers['Accept']='application/vnd.github+json';
+  o.headers['X-GitHub-Api-Version']='2022-11-28';
+  return fetch(`https://api.github.com/repos/${this.cfg.owner}/${this.cfg.repo}/contents/${path}`,o);
+ },
+
+ /* ---- base64 helpers that survive unicode ---- */
+ enc(str){const b=new TextEncoder().encode(str);let s='';b.forEach(c=>s+=String.fromCharCode(c));return btoa(s)},
+ dec(b64){const bin=atob(b64.replace(/\s/g,''));const a=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new TextDecoder().decode(a)},
+
+ async getFile(path){
+  const r=await this.api(path+'?ref='+encodeURIComponent(this.cfg.branch||'main'));
+  if(r.status===404)return null;
+  if(r.status===401)throw new Error('Token rejected. Check it has not expired.');
+  if(r.status===403)throw new Error('Access denied. Check the token can write Contents on this repo.');
+  if(!r.ok)throw new Error('GitHub returned '+r.status);
+  return r.json();
+ },
+ async putFile(path,b64,sha,msg){
+  const body={message:msg||('update '+path),content:b64,branch:this.cfg.branch||'main'};
+  if(sha)body.sha=sha;
+  const r=await this.api(path,{method:'PUT',body:JSON.stringify(body)});
+  if(r.status===409||r.status===422)throw Object.assign(new Error('conflict'),{conflict:true});
+  if(!r.ok){let d='';try{d=(await r.json()).message||''}catch(e){}
+   throw new Error('Write failed ('+r.status+') '+d)}
+  return r.json();
+ },
+
+ async test(cfg){
+  const keep=this.cfg;this.cfg=cfg;
+  try{
+   const r=await this.api('?ref='+encodeURIComponent(cfg.branch||'main'));
+   if(r.status===404)throw new Error('Repository not found. Check the owner and name, and that the token can see it.');
+   if(r.status===401)throw new Error('Token rejected. Check it has not expired.');
+   if(r.status===403)throw new Error('Access denied. The token needs Contents: Read and write on this repo.');
+   if(!r.ok)throw new Error('GitHub returned '+r.status);
+   return true;
+  }finally{this.cfg=keep}
+ },
+
+ /* ---- merge: per-field last-write-wins ---- */
+ merge(local,remote){
+  const lt=local._t||{},rt=remote._t||{},out={_t:{}};
+  const stamp=(s,k,t)=>{const p=s+':'+k;out._t[p]=t};
+  SYNCED.forEach(sec=>{
+   const isArr=BY_ID.includes(sec);
+   const L=local[sec]||(isArr?[]:{}),R=remote[sec]||(isArr?[]:{});
+   const lmap=isArr?Object.fromEntries((L||[]).map(o=>[o.id,o])):L;
+   const rmap=isArr?Object.fromEntries((R||[]).map(o=>[o.id,o])):R;
+   // union of keys present on either side PLUS keys only known through a
+   // tombstone, so deletions survive the round trip to the other device
+   const keys=new Set([...Object.keys(lmap||{}),...Object.keys(rmap||{})]);
+   const pre=sec+':';
+   [lt,rt].forEach(tm=>Object.keys(tm).forEach(p=>{if(p.indexOf(pre)===0)keys.add(p.slice(pre.length))}));
+   const merged={};
+   keys.forEach(k=>{
+    const p=sec+':'+k,a=lt[p]||0,b=rt[p]||0;
+    const hasL=Object.prototype.hasOwnProperty.call(lmap||{},k);
+    const hasR=Object.prototype.hasOwnProperty.call(rmap||{},k);
+    let win,wt;
+    if(hasL&&hasR){win=a>=b?lmap[k]:rmap[k];wt=Math.max(a,b)}
+    else if(hasL){                    // remote no longer has it
+     if(b>a&&b>0){stamp(sec,k,b);return}   // remote deleted it more recently
+     win=lmap[k];wt=a;
+    }else if(hasR){                   // local no longer has it
+     if(a>b&&a>0){stamp(sec,k,a);return}   // local deleted it more recently
+     win=rmap[k];wt=b;
+    }else{stamp(sec,k,Math.max(a,b));return}  // gone from both — keep the tombstone
+    if(win===undefined||win===null){stamp(sec,k,Math.max(a,b));return}
+    merged[k]=win;stamp(sec,k,wt||Date.now());
+   });
+   out[sec]=isArr?Object.values(merged):merged;
+  });
+  if(out.bookings)out.bookings.sort((x,y)=>x.date<y.date?-1:1);
+  return out;
+ },
+
+ /* ---- photos live as real files, not base64 inside the JSON ---- */
+ async uploadPhotos(state){
+  const up=[];
+  for(const [k,v] of Object.entries(state.photos||{})){
+   if(typeof v==='string'&&v.startsWith('data:'))up.push(['photos',k,v]);
+  }
+  for(const [k,o] of Object.entries(state.outfits||{})){
+   ['img','img2'].forEach(f=>{if(o&&typeof o[f]==='string'&&o[f].startsWith('data:'))up.push(['outfits',k+'|'+f,o[f]])});
+  }
+  (state.docs||[]).forEach(d=>{if(d.img&&d.img.startsWith('data:'))up.push(['docs',d.id,d.img])});
+  let n=0;
+  for(const [sec,key,data] of up){
+   const id=(sec+'_'+key).replace(/[^A-Za-z0-9_.-]/g,'_');
+   const path=`${PHOTO_DIR}/${id}.jpg`;
+   const b64=data.split(',')[1];
+   let sha=null;try{const ex=await this.getFile(path);sha=ex&&ex.sha}catch(e){}
+   try{
+    await this.putFile(path,b64,sha,'photo '+id);
+    const ref={f:path};
+    if(sec==='photos')state.photos[key]=ref;
+    else if(sec==='outfits'){const[kk,ff]=key.split('|');state.outfits[kk][ff]=ref}
+    else{const d=state.docs.find(x=>x.id===key);if(d)d.img=ref}
+    n++;
+   }catch(e){/* leave it local; try again next sync */}
+  }
+  return n;
+ },
+
+ /* fetch a photo file once, then keep it in the device cache */
+ photoCache:{},
+ async resolve(ref){
+  if(!ref)return null;
+  if(typeof ref==='string')return ref;
+  if(!ref.f)return null;
+  if(this.photoCache[ref.f])return this.photoCache[ref.f];
+  try{const cached=localStorage.getItem('pc:'+ref.f);
+   if(cached){this.photoCache[ref.f]=cached;return cached}}catch(e){}
+  if(!this.on)return null;
+  try{
+   const j=await this.getFile(ref.f);if(!j||!j.content)return null;
+   const url='data:image/jpeg;base64,'+j.content.replace(/\s/g,'');
+   this.photoCache[ref.f]=url;
+   try{localStorage.setItem('pc:'+ref.f,url)}catch(e){}
+   return url;
+  }catch(e){return null}
+ },
+
+ async run(silent){
+  if(!this.on){if(!silent)toast('Set up GitHub sync first');return false}
+  if(this.busy){this.queued=true;return false}
+  if(!navigator.onLine){this.err='offline';paintSync();if(!silent)toast('No connection — saved on this device');return false}
+  this.busy=true;this.err=null;paintSync();
+  try{
+   const remoteFile=await this.getFile(STATE_PATH);
+   let remote={_t:{}};
+   if(remoteFile&&remoteFile.content){
+    try{remote=JSON.parse(this.dec(remoteFile.content))}catch(e){remote={_t:{}}}
+   }
+   let merged=this.merge(S,remote);
+   const uploaded=await this.uploadPhotos(merged);
+   merged._t=merged._t||{};merged._updated=new Date().toISOString();merged._by=this.cfg.device||'device';
+   const body=this.enc(JSON.stringify(merged,null,1));
+   try{
+    await this.putFile(STATE_PATH,body,remoteFile&&remoteFile.sha,'sync from '+(this.cfg.device||'device'));
+   }catch(e){
+    if(e.conflict){this.busy=false;return this.run(silent)}  // someone else wrote; redo the merge
+    throw e;
+   }
+   Object.keys(merged).forEach(k=>{S[k]=merged[k]});
+   await Store.save();
+   await hydratePhotos().catch(()=>{});
+   this.last=new Date();this.err=null;
+   if(!silent)toast(uploaded?`Synced · ${uploaded} photo${uploaded===1?'':'s'} uploaded`:'Synced');
+   return true;
+  }catch(e){
+   this.err=e.message||'Sync failed';
+   if(!silent)toast(this.err);
+   return false;
+  }finally{
+   this.busy=false;paintSync();
+   if(this.queued){this.queued=false;setTimeout(()=>this.run(true),900)}
+   render();
+  }
+ }
+};
+
+/* ---- stamp every change so the merge knows what is newest ---- */
+function touch(section,key){S._t=S._t||{};S._t[section+':'+key]=Date.now()}
+
+/* ---- header sync chip ---- */
+function paintSync(){
+ const el=document.getElementById('syncchip');if(!el)return;
+ if(!Sync.on){el.className='chip';el.textContent='local only';return}
+ if(Sync.busy){el.className='chip busy';el.textContent='syncing…';return}
+ if(Sync.err){el.className='chip bad';el.textContent=Sync.err==='offline'?'offline':'sync failed';return}
+ el.className='chip good';
+ el.textContent=Sync.last?'synced '+Sync.last.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'sync ready';
+}
+
+/* ---- settings sheet ---- */
+function syncSheet(){
+ const c=Sync.cfg||{owner:'',repo:'honeymoon-data',branch:'main',token:'',device:''};
+ openSheet(`<h3>GitHub sync</h3>
+  <p class="hint" style="margin-bottom:13px">Keeps both phones in step through a <b>private</b> repository. Everything still saves on this device first, so the app works with no signal.</p>
+  <div class="alert"><b>Use a private repo for data</b>Your bookings, addresses, confirmation numbers and photos go in here. If the repo is public, so are they. The app repo stays public for Pages; the data repo must not be.</div>
+  <label class="f"><span>GitHub username or org</span><input id="ghown" value="${esc(c.owner)}" placeholder="kenichiedberty" autocapitalize="off" autocorrect="off"></label>
+  <label class="f"><span>Data repository name</span><input id="ghrepo" value="${esc(c.repo)}" placeholder="honeymoon-data" autocapitalize="off" autocorrect="off"></label>
+  <div class="grid2">
+   <label class="f"><span>Branch</span><input id="ghbr" value="${esc(c.branch||'main')}" autocapitalize="off"></label>
+   <label class="f"><span>This device</span><input id="ghdev" value="${esc(c.device||'')}" placeholder="Kenny iPhone"></label></div>
+  <label class="f"><span>Fine-grained access token</span>
+   <input id="ghtok" type="password" value="${esc(c.token||'')}" placeholder="github_pat_…" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+  <p class="hint" style="margin-bottom:13px">Stored on this device only — never written into either repository. Create it at
+   <b>github.com → Settings → Developer settings → Personal access tokens → Fine-grained</b>.
+   Give it access to <b>only the data repo</b>, permission <b>Contents: Read and write</b>, and an expiry after 6 October 2026.</p>
+  <div class="row"><button class="btn" id="ghsave">Connect and sync</button>
+   ${Sync.on?'<button class="btn ghost" id="ghoff">Disconnect</button>':''}
+   <span class="sp"></span><button class="btn ghost" onclick="closeSheet()">Cancel</button></div>
+  <div id="ghmsg" style="margin-top:11px"></div>`);
+ $('#ghsave').onclick=async()=>{
+  const cfg={owner:$('#ghown').value.trim(),repo:$('#ghrepo').value.trim(),
+   branch:$('#ghbr').value.trim()||'main',token:$('#ghtok').value.trim(),
+   device:$('#ghdev').value.trim()||'device'};
+  if(!cfg.owner||!cfg.repo||!cfg.token){$('#ghmsg').innerHTML='<div class="alert">Fill in the username, repository and token.</div>';return}
+  $('#ghmsg').innerHTML='<div class="alert info">Checking access…</div>';
+  try{
+   await Sync.test(cfg);
+   Sync.saveCfg(cfg);
+   $('#ghmsg').innerHTML='<div class="alert ok">Connected. Syncing…</div>';
+   const ok=await Sync.run(true);
+   $('#ghmsg').innerHTML=ok?'<div class="alert ok"><b>Synced</b>Set the same repo up on the other phone and both will stay in step.</div>'
+    :`<div class="alert"><b>Connected, but the sync failed</b>${esc(Sync.err||'')}</div>`;
+   render();
+  }catch(e){
+   $('#ghmsg').innerHTML=`<div class="alert"><b>Could not connect</b>${esc(e.message)}</div>`;
+  }
+ };
+ if($('#ghoff'))$('#ghoff').onclick=()=>{
+  if(!confirm('Disconnect sync on this device? Your data stays here.'))return;
+  Sync.clearCfg();closeSheet();render();toast('Disconnected');
+ };
+}
+
+/* ---- resolve remote photo refs into displayable images ---- */
+async function hydratePhotos(){
+ const jobs=[];
+ Object.entries(S.photos||{}).forEach(([k,v])=>{
+  if(v&&typeof v==='object'&&v.f)jobs.push(Sync.resolve(v).then(u=>{if(u)S.photos[k]=u}));});
+ Object.entries(S.outfits||{}).forEach(([k,o])=>{
+  if(!o)return;['img','img2'].forEach(f=>{
+   if(o[f]&&typeof o[f]==='object'&&o[f].f)jobs.push(Sync.resolve(o[f]).then(u=>{if(u)o[f]=u}));});});
+ (S.docs||[]).forEach(d=>{
+  if(d.img&&typeof d.img==='object'&&d.img.f)jobs.push(Sync.resolve(d.img).then(u=>{if(u)d.img=u}));});
+ if(!jobs.length)return false;
+ await Promise.all(jobs);return true;
+}
+
+window.addEventListener('online',()=>{if(Sync.on)Sync.run(true)});
+
+
+/* ═══════════════════ SHEETS ═══════════════════ */
+function openSheet(html){$('#sheet').innerHTML='<div class="grip"></div>'+html;$('#modal').classList.add('on')}
+function closeSheet(){$('#modal').classList.remove('on')}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeSheet()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+
+function editTime(key){
+ const[di,si]=key.split('.').map(Number);const d=DAYS[di],cur=itemTime(di,si);
+ openSheet(`<h3>Adjust time</h3><p class="hint" style="margin-bottom:13px">${esc(d.s[si][1])} · ${dLabel(d.d)}</p>
+  <label class="f"><span>Time</span><input type="time" id="ntime" value="${cur}"></label>
+  <div class="row"><button class="btn" id="tsave">Save time</button>
+  <button class="btn ghost" id="treset">Reset to ${d.s[si][0]}</button>
+  <span class="sp"></span><button class="btn ghost" onclick="closeSheet()">Cancel</button></div>
+  <p class="hint" style="margin-top:11px">Adjusted times are marked with * on the itinerary, so you can always see what you changed.</p>`);
+ $('#tsave').onclick=()=>{S.items[key]={t:$('#ntime').value};touch('items',key);save();closeSheet();render();toast('Time updated')};
+ $('#treset').onclick=()=>{delete S.items[key];touch('items',key);save();closeSheet();render();toast('Reset')};
+}
+function noteSheet(idx){
+ openSheet(`<h3>Note — ${esc(DAYS[idx].t)}</h3>
+  <p class="hint" style="margin-bottom:11px">${dLabel(DAYS[idx].d)}</p>
+  <label class="f"><span>Your note</span><textarea id="nn" rows="5" placeholder="Restaurant that worked, a shortcut, something to remember">${esc(S.notes[idx]||'')}</textarea></label>
+  <div class="row"><button class="btn" id="nsave">Save note</button>
+  ${S.notes[idx]?'<button class="btn ghost" id="ndel">Delete</button>':''}
+  <span class="sp"></span><button class="btn ghost" onclick="closeSheet()">Cancel</button></div>`);
+ $('#nsave').onclick=()=>{const v=$('#nn').value.trim();if(v)S.notes[idx]=v;else delete S.notes[idx];touch('notes',idx);save();closeSheet();render()};
+ if($('#ndel'))$('#ndel').onclick=()=>{delete S.notes[idx];touch('notes',idx);save();closeSheet();render()};
+}
+function photoSheet(key,q){
+ const has=S.photos[key];
+ openSheet(`<h3>${esc(q)}</h3>
+  <p class="hint" style="margin-bottom:13px">Add your own photo, or paste an image URL. Stored on this device only.</p>
+  ${has?`<img src="${has}" style="width:100%;border-radius:10px;margin-bottom:11px">`:''}
+  <div class="row" style="margin-bottom:11px">
+   <button class="btn" id="pup">${has?'Replace photo':'Upload photo'}</button>
+   ${has?'<button class="btn ghost" id="prm">Remove</button>':''}</div>
+  <label class="f"><span>Or paste an image URL</span><input id="purl" placeholder="https://…"></label>
+  <button class="btn ghost sm" id="purlgo">Use this URL</button>
+  <p class="hint" style="margin:15px 0 6px">Need a reference shot first?</p>
+  <a class="btn ghost sm" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q)}" target="_blank" rel="noopener">Search images for this place</a>
+  <p class="hint" style="margin-top:13px">Uploads are resized to 1400px and re-encoded so they fit in browser storage. Roughly 20–25 photos will fit in total — the Export tab shows how full you are.</p>`);
+ $('#pup').onclick=()=>pickImage(async d=>{S.photos[key]=d;touch('photos',key);await save();closeSheet();render();toast('Photo added')});
+ if($('#prm'))$('#prm').onclick=()=>{delete S.photos[key];touch('photos',key);save();closeSheet();render();toast('Removed')};
+ $('#purlgo').onclick=()=>{const u=$('#purl').value.trim();
+  if(!/^https?:\/\//.test(u))return toast('Needs to start with http');
+  S.photos[key]=u;touch('photos',key);save();closeSheet();render();toast('Linked')};
+}
+
+/* ═══════════════════ VIEW: BOOKINGS ═══════════════════ */
+const BTYPES=[['stay','Accommodation'],['car','Car hire'],['fly','Flight'],['act','Activity or tour'],['eat','Restaurant']];
+function bookingSheet(id,presetDate){
+ const b=id?S.bookings.find(x=>x.id===id):null;
+ openSheet(`<h3>${b?'Edit booking':'Add booking'}</h3>
+  <p class="hint" style="margin-bottom:13px">Anything with a confirmation — Airbnb, Trip.com, Booking.com, a tour, a table.</p>
+  <label class="f"><span>Type</span><select id="btype">${BTYPES.map(([v,l])=>`<option value="${v}"${b&&b.type===v?' selected':''}>${l}</option>`).join('')}</select></label>
+  <label class="f"><span>Name</span><input id="bname" value="${esc(b?b.name:'')}" placeholder="Canmore Airbnb — Three Sisters"></label>
+  <label class="f"><span>Date</span><select id="bdate">${DAYS.map(d=>`<option value="${d.d}"${(b?b.date:presetDate)===d.d?' selected':''}>${dLabel(d.d)} — ${esc(d.t)}</option>`).join('')}</select></label>
+  <label class="f"><span>Address</span><textarea id="baddr" rows="2" placeholder="Paste from the confirmation email">${esc(b?b.addr:'')}</textarea></label>
+  <div class="grid2">
+   <label class="f"><span>Check in / start</span><input type="time" id="bin" value="${b&&b.checkin?b.checkin:''}"></label>
+   <label class="f"><span>Check out / end</span><input type="time" id="bout" value="${b&&b.checkout?b.checkout:''}"></label></div>
+  <div class="grid2">
+   <label class="f"><span>Confirmation ref</span><input id="bconf" value="${esc(b?b.conf:'')}"></label>
+   <label class="f"><span>Cost (USD)</span><input type="number" inputmode="decimal" id="bcost" value="${b&&b.cost?b.cost:''}"></label></div>
+  <label class="f"><span>Notes</span><textarea id="bnote" rows="2" placeholder="Parking, door code, cancellation deadline">${esc(b?b.note:'')}</textarea></label>
+  <div class="row"><button class="btn" id="bsave">${b?'Save changes':'Add booking'}</button>
+   ${b?'<button class="btn warn" id="bdel">Delete</button>':''}
+   <span class="sp"></span><button class="btn ghost" onclick="closeSheet()">Cancel</button></div>`);
+ $('#bsave').onclick=()=>{
+  const name=$('#bname').value.trim();if(!name)return toast('Give it a name');
+  const o={id:b?b.id:uid(),type:$('#btype').value,name,date:$('#bdate').value,
+   addr:$('#baddr').value.trim(),checkin:$('#bin').value,checkout:$('#bout').value,
+   conf:$('#bconf').value.trim(),cost:parseFloat($('#bcost').value)||0,note:$('#bnote').value.trim()};
+  if(b)Object.assign(b,o);else S.bookings.push(o);touch('bookings',o.id);
+  S.bookings.sort((x,y)=>x.date<y.date?-1:1);save();closeSheet();render();toast(b?'Booking updated':'Booking added');
+ };
+ if($('#bdel'))$('#bdel').onclick=()=>{S.bookings=S.bookings.filter(x=>x.id!==id);touch('bookings',id);save();closeSheet();render();toast('Deleted')};
+}
+function vBook(){
+ const el=$('#v-book');
+ const unbooked=DAYS.filter(d=>d.stay!=='In the air'&&!S.bookings.some(b=>b.type==='stay'&&b.date===d.d));
+ let h=`<div class="sect-h"><h2>Bookings</h2><span class="n">${S.bookings.length} saved</span></div>
+  <button class="btn" id="addbk" style="margin-bottom:12px">+ Add a booking</button>`;
+ if(unbooked.length)
+  h+=`<div class="alert"><b>${unbooked.length} ${unbooked.length===1?'night has':'nights have'} no accommodation logged</b>
+   ${unbooked.slice(0,5).map(d=>dLabel(d.d)).join(' · ')}${unbooked.length>5?' …':''}</div>`;
+ h+=`<div class="card pad"><div class="eyebrow">Flights</div>
+  ${TRIP.flights.map(f=>`<div class="kv"><span class="k">${esc(f.code)} · ${esc(f.from)} → ${esc(f.to)}</span>
+   <span class="v">${dShort(f.date).dd} ${dShort(f.date).mm} ${f.dep}<br>
+   <span class="tag ${f.st==='booked'?'ok':'canyon'}">${f.st==='booked'?'booked':'to book'}</span></span></div>`).join('')}</div>`;
+ if(!S.bookings.length){
+  h+=`<div class="card"><div class="empty"><h3>Nothing logged yet</h3>
+   <p>Add your first booking and it will appear on the matching day, with the address as a Maps link and a warning if check-in clashes with your arrival time.</p></div></div>`;
+ }else{
+  let last=null;
+  S.bookings.forEach(b=>{
+   if(b.date!==last){last=b.date;h+=`<div class="sect-h"><h2 style="font-size:16px">${dLabel(b.date)}</h2></div>`}
+   const lbl=(BTYPES.find(t=>t[0]===b.type)||['','Other'])[1];
+   h+=`<div class="card pad"><div class="row" style="margin-bottom:5px">
+    <span class="tag ${b.type==='stay'?'larch':b.type==='car'?'glacier':'canyon'}">${lbl}</span>
+    <span class="sp"></span>${b.cost?`<span class="mono" style="font-size:13px">$${b.cost}</span>`:''}</div>
+    <h3 style="font-size:16px;margin-bottom:4px">${esc(b.name)}</h3>
+    ${b.addr?`<p class="hint">${esc(b.addr)}</p>`:''}
+    <div class="row" style="margin-top:7px">
+     ${b.checkin?`<span class="tag">in ${b.checkin}</span>`:''}${b.checkout?`<span class="tag">out ${b.checkout}</span>`:''}
+     ${b.conf?`<span class="tag">${esc(b.conf)}</span>`:''}</div>
+    ${b.note?`<p class="hint" style="margin-top:7px">${esc(b.note)}</p>`:''}
+    <div class="row" style="margin-top:9px">
+     ${b.addr?`<a class="btn ghost sm" href="https://maps.google.com/?q=${encodeURIComponent(b.addr)}" target="_blank" rel="noopener">Maps</a>`:''}
+     <button class="btn ghost sm" data-edit="${b.id}">Edit</button></div></div>`;
+  });
+ }
+ h+=`<div class="sect-h"><h2>Receipts &amp; tickets</h2><span class="n">${S.docs.length} saved</span></div>
+  <button class="btn ghost" id="adddoc" style="margin-bottom:11px">+ Add a photo of a document</button>
+  <p class="hint" style="margin-bottom:11px">Photograph a boarding pass, receipt or confirmation. Images only — PDFs are far too large for browser storage, so keep those in your email.</p>`;
+ if(S.docs.length)
+  h+=`<div class="pgrid">${S.docs.map(d=>`<div class="pslot" data-doc="${d.id}">
+   <img src="${d.img}" alt="${esc(d.label)}"><button class="pdel" data-deldoc="${d.id}">×</button>
+   <div class="cap">${esc(d.label)}</div></div>`).join('')}</div>`;
+ el.innerHTML=h;
+ $('#addbk').onclick=()=>bookingSheet(null,todayISO()>=TRIP.start?todayISO():TRIP.start);
+ $$('[data-edit]',el).forEach(b=>b.onclick=()=>bookingSheet(b.dataset.edit));
+ $('#adddoc').onclick=()=>pickImage(async(img,fn)=>{
+  const _id=uid();S.docs.push({id:_id,img,label:(fn||'Document').replace(/\.[^.]+$/,'').slice(0,28)});touch('docs',_id);await save();render();toast('Saved')},true);
+ $$('[data-deldoc]',el).forEach(b=>b.onclick=e=>{e.stopPropagation();
+  touch('docs',b.dataset.deldoc);S.docs=S.docs.filter(d=>d.id!==b.dataset.deldoc);save();render();toast('Removed')});
+ $$('[data-doc]',el).forEach(b=>b.onclick=e=>{
+  if(e.target.dataset.deldoc)return;const d=S.docs.find(x=>x.id===b.dataset.doc);
+  openSheet(`<h3>${esc(d.label)}</h3><img src="${d.img}" style="width:100%;border-radius:10px;margin:11px 0">
+   <label class="f"><span>Label</span><input id="dl" value="${esc(d.label)}"></label>
+   <div class="row"><button class="btn" id="dsave">Save label</button><span class="sp"></span>
+   <button class="btn ghost" onclick="closeSheet()">Close</button></div>`);
+  $('#dsave').onclick=()=>{d.label=$('#dl').value.trim()||'Document';touch('docs',d.id);save();closeSheet();render()};
+ });
+}
+
+/* ═══════════════════ VIEW: LISTS ═══════════════════ */
+let listTab='todo';
+function vPack(){
+ const el=$('#v-pack');
+ const tdone=Object.values(S.todos).filter(Boolean).length;
+ const ttotal=TODOS.reduce((n,[,i])=>n+i.length,0);
+ const pdone=Object.values(S.packing).filter(Boolean).length;
+ const ptotal=PACKING.reduce((n,[,i])=>n+i.length,0);
+ let h=`<div class="row noprint" style="margin-bottom:12px">
+  <button class="btn sm ${listTab==='todo'?'':'ghost'}" data-lt="todo">To do · ${tdone}/${ttotal}</button>
+  <button class="btn sm ${listTab==='pack'?'':'ghost'}" data-lt="pack">Packing · ${pdone}/${ptotal}</button></div>`;
+ if(listTab==='todo'){
+  TODOS.forEach(([grp,items])=>{
+   const gd=items.filter(([t])=>S.todos[t]).length;
+   h+=`<details class="acc" ${gd<items.length?'open':''}><summary>${esc(grp)}
+    <span class="tag ${gd===items.length?'ok':''}" style="margin-left:6px">${gd}/${items.length}</span></summary>
+    <div class="ab">${items.map(([t,due])=>{
+     const on=!!S.todos[t],dd=daysBetween(todayISO(),due),late=!on&&dd<0;
+     return `<div class="si${on?' done':''}">
+      <button class="ck${on?' on':''}" data-todo="${esc(t)}"><svg viewBox="0 0 24 24"><path d="m5 13 4 4L19 7"/></svg></button>
+      <div class="bd"><b>${esc(t)}</b><span class="no">${late?'<span style="color:var(--canyon);font-weight:600">Overdue — was '+dLabel(due)+'</span>':on?'done':'by '+dLabel(due)+(dd<=7?` · ${dd}d`:'')}</span></div></div>`}).join('')}</div></details>`;
+  });
+ }else{
+  PACKING.forEach(([grp,items])=>{
+   const gd=items.filter(t=>S.packing[t]).length;
+   h+=`<details class="acc" ${gd<items.length?'open':''}><summary>${esc(grp)}
+    <span class="tag ${gd===items.length?'ok':''}" style="margin-left:6px">${gd}/${items.length}</span></summary>
+    <div class="ab">${items.map(t=>{const on=!!S.packing[t];
+     return `<div class="si${on?' done':''}">
+      <button class="ck${on?' on':''}" data-pack="${esc(t)}"><svg viewBox="0 0 24 24"><path d="m5 13 4 4L19 7"/></svg></button>
+      <div class="bd"><b>${esc(t)}</b></div></div>`}).join('')}</div></details>`;
+  });
+ }
+ el.innerHTML=h;
+ $$('[data-lt]',el).forEach(b=>b.onclick=()=>{listTab=b.dataset.lt;render()});
+ $$('[data-todo]',el).forEach(b=>b.onclick=()=>{const k=b.dataset.todo;S.todos[k]=!S.todos[k];touch('todos',k);save();render()});
+ $$('[data-pack]',el).forEach(b=>b.onclick=()=>{const k=b.dataset.pack;S.packing[k]=!S.packing[k];touch('packing',k);save();render()});
+}
+
+/* ═══════════════════ VIEW: SCRAPBOOK ═══════════════════ */
+function vScrap(){
+ const el=$('#v-scrap');
+ const bases=[...new Set(DAYS.map(d=>d.base))];
+ const count=Object.keys(S.outfits).length;
+ let h=`<div class="sect-h"><h2>Outfit scrapbook</h2><span class="n">${count} planned</span></div>
+  <div class="alert info"><b>For Hershania</b>Plan a look per location, with the weather and the terrain in view. Each entry holds a photo, notes and the pieces you're bringing. Everything stays on this device.</div>`;
+ bases.forEach(bk=>{
+  const L=LOC[bk],ds=DAYS.filter(d=>d.base===bk);
+  const o=S.outfits[bk]||{};
+  const wxLine=`${L.cl[0]}–${L.cl[1]}°C`;
+  h+=`<div class="card">
+   <div class="pad" style="padding-bottom:9px">
+    <div class="row"><div style="flex:1;min-width:0">
+     <h3 style="font-size:17px">${esc(L.n)}</h3>
+     <p class="hint">${esc(L.a)} · ${ds.length} ${ds.length===1?'day':'days'} · ${wxLine}</p></div>
+     ${o.img?'<span class="tag ok">planned</span>':'<span class="tag">empty</span>'}</div>
+    <div class="row" style="margin-top:9px">
+     ${ds.map(d=>`<span class="tag">${dShort(d.d).dd} ${dShort(d.d).mm}</span>`).join('')}</div>
+   </div>
+   <div class="pad" style="padding-top:0">
+    <div class="pgrid" style="grid-template-columns:repeat(auto-fill,minmax(112px,1fr))">
+     <div class="pslot" data-outfit="${bk}" style="aspect-ratio:3/4">
+      ${o.img?`<img src="${o.img}" alt="Outfit for ${esc(L.n)}"><button class="pdel" data-delout="${bk}">×</button>`
+       :`<div class="plus">+</div><div class="ph">Add outfit<br>photo</div>`}</div>
+     ${o.img2?`<div class="pslot" data-outfit2="${bk}" style="aspect-ratio:3/4"><img src="${o.img2}" alt="Alternate">
+       <button class="pdel" data-delout2="${bk}">×</button></div>`
+      :`<div class="pslot" data-outfit2="${bk}" style="aspect-ratio:3/4"><div class="plus">+</div><div class="ph">Alternate</div></div>`}
+    </div>
+    ${o.pieces?`<p class="hint" style="margin-top:9px"><b>Pieces:</b> ${esc(o.pieces)}</p>`:''}
+    ${o.note?`<p class="hint" style="margin-top:5px">${esc(o.note)}</p>`:''}
+    <button class="btn ghost sm" data-outnote="${bk}" style="margin-top:9px">${o.pieces||o.note?'Edit details':'Add pieces & notes'}</button>
+   </div></div>`;
+ });
+ el.innerHTML=h;
+ $$('[data-outfit]',el).forEach(b=>b.onclick=e=>{if(e.target.dataset.delout)return;
+  pickImage(async d=>{S.outfits[b.dataset.outfit]={...(S.outfits[b.dataset.outfit]||{}),img:d};touch('outfits',b.dataset.outfit);await save();render();toast('Outfit saved')})});
+ $$('[data-outfit2]',el).forEach(b=>b.onclick=e=>{if(e.target.dataset.delout2)return;
+  pickImage(async d=>{S.outfits[b.dataset.outfit2]={...(S.outfits[b.dataset.outfit2]||{}),img2:d};touch('outfits',b.dataset.outfit2);await save();render();toast('Saved')})});
+ $$('[data-delout]',el).forEach(b=>b.onclick=e=>{e.stopPropagation();
+  const o=S.outfits[b.dataset.delout]||{};delete o.img;S.outfits[b.dataset.delout]=o;touch('outfits',b.dataset.delout);save();render()});
+ $$('[data-delout2]',el).forEach(b=>b.onclick=e=>{e.stopPropagation();
+  const o=S.outfits[b.dataset.delout2]||{};delete o.img2;S.outfits[b.dataset.delout2]=o;touch('outfits',b.dataset.delout2);save();render()});
+ $$('[data-outnote]',el).forEach(b=>b.onclick=()=>{
+  const bk=b.dataset.outnote,L=LOC[bk],o=S.outfits[bk]||{};
+  openSheet(`<h3>${esc(L.n)}</h3><p class="hint" style="margin-bottom:13px">${esc(L.a)} · expect ${L.cl[0]}–${L.cl[1]}°C</p>
+   <label class="f"><span>Pieces</span><input id="op" value="${esc(o.pieces||'')}" placeholder="Cream knit, wide-leg denim, brown boots"></label>
+   <label class="f"><span>Notes</span><textarea id="on" rows="3" placeholder="Layer for the sunrise, change before dinner">${esc(o.note||'')}</textarea></label>
+   <div class="row"><button class="btn" id="osave">Save</button><span class="sp"></span>
+   <button class="btn ghost" onclick="closeSheet()">Cancel</button></div>`);
+  $('#osave').onclick=()=>{S.outfits[bk]={...o,pieces:$('#op').value.trim(),note:$('#on').value.trim()};
+   touch('outfits',bk);save();closeSheet();render();toast('Saved')};
+ });
+}
+
+/* ═══════════════════ VIEW: BUDGET ═══════════════════ */
+function vMoney(){
+ const el=$('#v-money');
+ const lo=BUDGET.reduce((n,b)=>n+b[1],0),hi=BUDGET.reduce((n,b)=>n+b[2],0);
+ const booked=S.bookings.reduce((n,b)=>n+(b.cost||0),0);
+ const extra=S.spend.reduce((n,s)=>n+s.amt,0);
+ const spent=booked+extra;
+ const rate=16500;
+ let h=`<div class="sect-h"><h2>Budget</h2><span class="n">excl. EVA tickets</span></div>
+  <div class="card pad">
+   <div class="kv"><span class="k">Planned range</span><span class="v">$${lo.toLocaleString()} – $${hi.toLocaleString()}</span></div>
+   <div class="kv"><span class="k">Target</span><span class="v">$11,800</span></div>
+   <div class="kv"><span class="k">Committed so far</span><span class="v">$${spent.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
+   <div class="kv"><span class="k">In rupiah (at 16,500)</span><span class="v">IDR ${(spent*rate/1e6).toFixed(1)}M</span></div>
+   <div class="meter"><i class="${spent>hi?'max':spent>lo?'hi':''}" style="width:${Math.min(100,spent/hi*100)}%"></i></div>
+   <p class="hint">${spent?`${Math.round(spent/hi*100)}% of the upper estimate committed`:'Add costs to bookings and they appear here'}</p>
+  </div>
+  <div class="sect-h"><h2 style="font-size:17px">Planned by category</h2></div>
+  <div class="card pad">${BUDGET.map(([n,a,b])=>
+   `<div class="kv"><span class="k">${esc(n)}</span><span class="v">$${a.toLocaleString()}–${b.toLocaleString()}</span></div>`).join('')}
+   <div class="kv"><span class="k"><b>Total excl. flights home</b></span><span class="v">$${lo.toLocaleString()}–${hi.toLocaleString()}</span></div>
+  </div>
+  <div class="sect-h"><h2 style="font-size:17px">Actual spend</h2>
+   <span class="n">${S.spend.length} entries</span></div>
+  <button class="btn ghost" id="addsp" style="margin-bottom:11px">+ Log a cost</button>`;
+ if(S.spend.length){
+  h+=`<div class="card pad">${S.spend.slice().reverse().map(s=>
+   `<div class="kv"><span class="k">${esc(s.what)}<br><span style="font-size:11px">${dLabel(s.date)}</span></span>
+    <span class="v">$${s.amt.toLocaleString()}<br><button class="btn ghost sm" data-delsp="${s.id}" style="margin-top:3px">Remove</button></span></div>`).join('')}</div>`;
+ }
+ h+=`<div class="alert info"><b>Where the savings already are</b>
+  $250 non-resident park pass instead of $735 at the gate · third-party rental insurance instead of the counter, $300–500 ·
+  crossover not SUV, $400–500 · Canmore over Banff townsite, $300–450 · Lone Pine over Furnace Creek, $120–200 ·
+  picnic lunches on park days, $300–400 · shopping in Alberta with no provincial sales tax, ~$110.</div>`;
+ el.innerHTML=h;
+ $('#addsp').onclick=()=>{
+  openSheet(`<h3>Log a cost</h3>
+   <label class="f"><span>What</span><input id="sw" placeholder="Fuel, Panamint Springs"></label>
+   <div class="grid2"><label class="f"><span>Amount (USD)</span><input type="number" inputmode="decimal" id="sa"></label>
+   <label class="f"><span>Date</span><input type="date" id="sd" value="${todayISO()}"></label></div>
+   <div class="row"><button class="btn" id="ssave">Add</button><span class="sp"></span>
+   <button class="btn ghost" onclick="closeSheet()">Cancel</button></div>`);
+  $('#ssave').onclick=()=>{const w=$('#sw').value.trim(),a=parseFloat($('#sa').value);
+   if(!w||!a)return toast('Need a description and an amount');
+   const _sid=uid();S.spend.push({id:_sid,what:w,amt:a,date:$('#sd').value});touch('spend',_sid);save();closeSheet();render();toast('Logged')};
+ };
+ $$('[data-delsp]',el).forEach(b=>b.onclick=()=>{touch('spend',b.dataset.delsp);S.spend=S.spend.filter(s=>s.id!==b.dataset.delsp);save();render()});
+}
+
+/* ═══════════════════ VIEW: EXPORT ═══════════════════ */
+function vOut(){
+ const el=$('#v-out');
+ const used=Store.bytes(),pct=Math.min(100,used/CAP*100);
+ const photoN=Object.keys(S.photos).length+Object.keys(S.outfits).length+S.docs.length;
+ el.innerHTML=`<div class="sect-h"><h2>Export &amp; backup</h2></div>
+  <div class="card pad">
+   <div class="eyebrow">Embassy pack</div>
+   <p class="hint" style="margin-bottom:11px">A clean printable itinerary with flights, all 22 days and your confirmed bookings. Print to PDF and bring it to the 20 August interview — it shows a specific, funded plan with a fixed return date.</p>
+   <button class="btn" id="pemb">Print embassy pack</button>
+  </div>
+  <div class="card pad">
+   <div class="eyebrow">Sync between devices</div>
+   <div id="syncbox"></div>
+  </div>
+  <div class="card pad">
+   <div class="eyebrow">Backup file</div>
+   <p class="hint" style="margin-bottom:11px">A file you can keep anywhere. Worth downloading before the trip and after any big edit, whether or not sync is on — it is the one copy that does not depend on GitHub or on this device.</p>
+   <div class="row"><button class="btn" id="dl">Download backup</button>
+    <button class="btn ghost" id="up">Restore from file</button></div>
+  </div>
+  <div class="card pad">
+   <div class="eyebrow">Storage</div>
+   <div class="meter"><i class="${pct>85?'max':pct>60?'hi':''}" style="width:${pct}%"></i></div>
+   <div class="kv"><span class="k">Used</span><span class="v">${fmtB(used)} of ~${fmtB(CAP)}</span></div>
+   <div class="kv"><span class="k">Images stored</span><span class="v">${photoN}</span></div>
+   <div class="kv"><span class="k">Bookings</span><span class="v">${S.bookings.length}</span></div>
+   <div class="kv"><span class="k">Local store</span><span class="v">${Store.remote?'Claude storage':'Browser'}</span></div>
+   <div class="kv"><span class="k">Sync</span><span class="v">${Sync.on?'GitHub · '+esc(Sync.cfg.repo):'off'}</span></div>
+   ${pct>78?'<div class="alert" style="margin-top:9px"><b>Getting full</b>Remove a few photos, or download a backup and clear older documents.</div>':''}
+  </div>
+  <div class="card pad">
+   <div class="eyebrow">Reset</div>
+   <p class="hint" style="margin-bottom:9px">Clears every tick, booking, photo and note. The itinerary itself is built in and always returns.</p>
+   <button class="btn warn" id="wipe">Erase all my data</button>
+  </div>
+  <div class="card pad">
+   <div class="eyebrow">About</div>
+   <p class="hint">Larch &amp; Canyon — built for Kenny and Hershania's honeymoon, 14 September to 6 October 2026.
+   Weather from Open-Meteo when the date is inside the 16-day forecast window; otherwise seasonal ranges, marked with ≈.
+   Works offline once loaded, apart from live weather.</p>
+  </div>
+  <section class="view" id="v-print"></section>`;
+
+ const sb=$('#syncbox');
+ if(Sync.on){
+  sb.innerHTML=`<div class="kv"><span class="k">Repository</span><span class="v">${esc(Sync.cfg.owner)}/${esc(Sync.cfg.repo)}</span></div>
+   <div class="kv"><span class="k">This device</span><span class="v">${esc(Sync.cfg.device||'device')}</span></div>
+   <div class="kv"><span class="k">Status</span><span class="v">${Sync.busy?'syncing…':Sync.err?esc(Sync.err):Sync.last?'synced '+Sync.last.toLocaleTimeString():'ready'}</span></div>
+   <div class="row" style="margin-top:10px"><button class="btn" id="syncnow"${Sync.busy?' disabled':''}>Sync now</button>
+   <button class="btn ghost" id="syncset">Settings</button></div>`;
+ }else{
+  sb.innerHTML=`<p class="hint" style="margin-bottom:10px">Off. Everything is saved on this device only — nothing reaches Hershania's phone. Connect a private GitHub repository and both devices stay in step, with edits merged field by field.</p>
+   <button class="btn" id="syncset">Set up GitHub sync</button>`;
+ }
+ if($('#syncnow'))$('#syncnow').onclick=()=>Sync.run();
+ if($('#syncset'))$('#syncset').onclick=syncSheet;
+ $('#pemb').onclick=printPack;
+ $('#dl').onclick=()=>{
+  const blob=new Blob([JSON.stringify({app:'larch-canyon',v:1,when:new Date().toISOString(),data:S},null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='honeymoon-backup-'+todayISO()+'.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);toast('Backup downloaded');
+ };
+ $('#up').onclick=()=>{
+  const i=document.createElement('input');i.type='file';i.accept='application/json,.json';
+  i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();
+   r.onload=()=>{try{const j=JSON.parse(r.result);
+    if(!j.data)throw 0;
+    if(!confirm('Restore this backup? It replaces everything currently on this device.'))return;
+    S=Object.assign({done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{}},j.data);
+    save();render();toast('Backup restored');
+   }catch(e){toast('That file is not a Larch & Canyon backup')}};
+   r.readAsText(f)};
+  i.click();
+ };
+ $('#wipe').onclick=()=>{
+  if(!confirm('Erase everything stored on this device? This cannot be undone.'))return;
+  if(!confirm('Really sure? Download a backup first if you might want it back.'))return;
+  S={done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{},v:1};
+  save();render();toast('All data erased');
+ };
+}
+function printPack(){
+ const p=$('#v-print');
+ p.innerHTML=`<div style="font-family:var(--b)">
+  <h1 style="font-size:22pt;margin-bottom:2mm">Travel Itinerary — United States &amp; Canada</h1>
+  <p style="font-family:var(--m);font-size:9pt;letter-spacing:.08em;text-transform:uppercase;color:#555;margin-bottom:6mm">
+   Kenichi Edbert Yauwanta &amp; Hershania · 14 September – 6 October 2026 · 22 days</p>
+  <h2 style="font-size:13pt;margin:6mm 0 2mm">Confirmed flights</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:9.5pt">
+   ${TRIP.flights.map(f=>`<tr style="border-bottom:1px solid #ddd">
+    <td style="padding:2mm 0"><b>${esc(f.code)}</b></td><td>${esc(f.from)} → ${esc(f.to)}</td>
+    <td style="text-align:right">${dLabel(f.date)}</td>
+    <td style="text-align:right;font-family:var(--m)">${f.dep} – ${f.arr}</td></tr>`).join('')}
+  </table>
+  ${S.bookings.length?`<h2 style="font-size:13pt;margin:6mm 0 2mm">Confirmed accommodation and bookings</h2>
+   <table style="width:100%;border-collapse:collapse;font-size:9.5pt">
+   ${S.bookings.map(b=>`<tr style="border-bottom:1px solid #ddd">
+    <td style="padding:2mm 0;white-space:nowrap">${dLabel(b.date)}</td>
+    <td><b>${esc(b.name)}</b>${b.addr?'<br><span style="color:#555">'+esc(b.addr)+'</span>':''}</td>
+    <td style="text-align:right;font-family:var(--m)">${esc(b.conf||'')}</td></tr>`).join('')}
+   </table>`:''}
+  <h2 style="font-size:13pt;margin:6mm 0 2mm">Day by day</h2>
+  ${DAYS.map((d,i)=>`<div style="break-inside:avoid;margin-bottom:4mm">
+   <div style="border-bottom:1.5pt solid #1B2A24;padding-bottom:1mm;margin-bottom:1.5mm">
+    <b style="font-size:11pt">Day ${i+1} · ${dLabel(d.d)} — ${esc(d.t)}</b><br>
+    <span style="font-size:9pt;color:#555">${esc(LOC[d.base].n)}, ${esc(LOC[d.base].a)} · ${esc(d.stay)}${d.drive!=='—'?' · '+d.drive+' driving':''}</span></div>
+   <table style="width:100%;border-collapse:collapse;font-size:9pt">
+   ${d.s.map((it,si)=>`<tr><td style="width:14mm;vertical-align:top;font-family:var(--m);padding:.7mm 0">${itemTime(i,si)}</td>
+    <td style="padding:.7mm 0">${esc(it[1])}</td></tr>`).join('')}
+   </table></div>`).join('')}
+  <p style="font-size:8.5pt;color:#555;margin-top:6mm;border-top:1px solid #ccc;padding-top:2mm">
+   Return to Jakarta confirmed for 6 October 2026 on EVA Air BR 237, arriving 13:20.
+   Generated ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}.</p></div>`;
+ $$('.view').forEach(v=>v.classList.remove('printing'));
+ p.classList.add('printing');
+ setTimeout(()=>{window.print();setTimeout(()=>p.classList.remove('printing'),400)},120);
+}
+
+/* ═══════════════════ BOOT ═══════════════════ */
+function render(){
+ const y=window.scrollY;
+ header();
+ ({now:vNow,route:vRoute,book:vBook,pack:vPack,scrap:vScrap,money:vMoney,out:vOut}[view]||vNow)();
+ requestAnimationFrame(()=>window.scrollTo(0,y));
+}
+if('serviceWorker'in navigator&&location.protocol==='https:'){
+ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+(async function init(){
+ const m=await Store.load();
+ S=Object.assign({done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{},v:1},m||{});
+
+ Sync.loadCfg();
+ buildNav();render();
+ const chip=document.getElementById('syncchip');
+ if(chip)chip.onclick=()=>{if(Sync.on&&!Sync.busy)Sync.run();else syncSheet()};
+ paintSync();
+ if(Sync.on){
+  await hydratePhotos().then(ok=>{if(ok)render()}).catch(()=>{});
+  Sync.run(true);
+  setInterval(()=>{if(Sync.on&&!Sync.busy&&navigator.onLine)Sync.run(true)},1000*60*5);
+ }
+ const ph=tripPhase();
+ if(ph.p==='during')setInterval(()=>{if(view==='now')vNow()},60000);
+})();
+
+</script>
+</body>
+</html>
