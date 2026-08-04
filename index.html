@@ -274,6 +274,7 @@ details.acc .ab{padding:0 13px 13px}
 <input type="file" id="filepick" accept="image/*" style="display:none" multiple>
 <script>
 /* ═══════════════════ TRIP DATA ═══════════════════ */
+const BUILD='2026.08.04-3';   // shown in Export → About, so you can tell what is live
 const TRIP={start:'2026-09-14',end:'2026-10-06',pax:2,
  flights:[
   {code:'BR 238',from:'Jakarta (CGK)',to:'Taipei (TPE)',date:'2026-09-14',dep:'14:30',arr:'20:55',st:'booked'},
@@ -739,6 +740,7 @@ const Store={
     this.ready=true;return this.mem;
   },
   async save(){
+    this.mem=S;                       // S is rebuilt at boot, so re-point every time
     const s=JSON.stringify(this.mem);
     try{
       if(this.remote){await window.storage.set('trip',s)}
@@ -1899,6 +1901,11 @@ async function vOut(){
    ${pct>88?'<div class="alert" style="margin-top:9px"><b>Device storage is getting full</b>This is your phone\'s free space, not an app limit. Photos already synced are safe in the data repo and can be re-downloaded.</div>':'<p class="hint" style="margin-top:7px">Photos are held as binary in IndexedDB, so the ceiling is your device\'s free space rather than a fixed few megabytes. Synced photos also live in the data repo.</p>'}
   </div>
   <div class="card pad">
+   <div class="eyebrow">App updates</div>
+   <p class="hint" style="margin-bottom:9px">This build is <b>${BUILD}</b>. The app checks for a newer version every time it opens while online. If you have uploaded new files and still see the old screen, clear the cached copy here.</p>
+   <button class="btn ghost" id="freshen">Fetch the latest version</button>
+  </div>
+  <div class="card pad">
    <div class="eyebrow">Reset</div>
    <p class="hint" style="margin-bottom:9px">Clears every tick, booking, photo and note. The itinerary itself is built in and always returns.</p>
    <button class="btn warn" id="wipe">Erase all my data</button>
@@ -1910,6 +1917,7 @@ async function vOut(){
    Exchange rates by <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener">ExchangeRate-API</a>, cached on the device so conversions still work offline.
    Photos are held in IndexedDB, so capacity is your device's free space rather than a fixed few megabytes.
    Works offline once loaded, apart from live weather and rates.</p>
+   <div class="kv" style="margin-top:9px"><span class="k">Build</span><span class="v">${BUILD}</span></div>
   </div>
   <section class="view" id="v-print"></section>`;
 
@@ -1926,6 +1934,17 @@ async function vOut(){
  }
  if($('#syncnow'))$('#syncnow').onclick=()=>Sync.run();
  if($('#syncset'))$('#syncset').onclick=syncSheet;
+ $('#freshen').onclick=async()=>{
+  toast('Clearing the cached copy…');
+  try{
+   if('caches'in window){for(const k of await caches.keys())await caches.delete(k)}
+   if(navigator.serviceWorker){
+    const rs=await navigator.serviceWorker.getRegistrations();
+    for(const r of rs)await r.unregister();
+   }
+  }catch(e){}
+  setTimeout(()=>location.reload(true),700);
+ };
  $('#pemb').onclick=printPack;
  $('#dl').onclick=()=>{
   const blob=new Blob([JSON.stringify({app:'larch-canyon',v:2,when:new Date().toISOString(),data:S},null,1)],{type:'application/json'});
@@ -1999,7 +2018,21 @@ function render(){
  requestAnimationFrame(()=>window.scrollTo(0,y));
 }
 if('serviceWorker'in navigator&&location.protocol==='https:'){
- window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+ window.addEventListener('load',()=>{
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+   reg.update();
+   reg.addEventListener('updatefound',()=>{
+    const w=reg.installing;if(!w)return;
+    w.addEventListener('statechange',()=>{
+     if(w.state==='installed'&&navigator.serviceWorker.controller){
+      toast('New version ready — reopening');
+      w.postMessage('skipWaiting');
+      setTimeout(()=>location.reload(),1200);
+     }
+    });
+   });
+  }).catch(()=>{});
+ });
 }
 (async function init(){
  const m=await Store.load();
