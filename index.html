@@ -274,7 +274,7 @@ details.acc .ab{padding:0 13px 13px}
 <input type="file" id="filepick" accept="image/*" style="display:none" multiple>
 <script>
 /* ═══════════════════ TRIP DATA ═══════════════════ */
-const BUILD='2026.08.04-3';   // shown in Export → About, so you can tell what is live
+const BUILD='2026.08.07-4';   // shown in Export → About, so you can tell what is live
 const TRIP={start:'2026-09-14',end:'2026-10-06',pax:2,
  flights:[
   {code:'BR 238',from:'Jakarta (CGK)',to:'Taipei (TPE)',date:'2026-09-14',dep:'14:30',arr:'20:55',st:'booked'},
@@ -727,7 +727,7 @@ async function migratePhotos(){
    Works in two places: Claude artifacts (window.storage) and any
    normal browser / GitHub Pages (localStorage). Same API either way. */
 const Store={
-  mem:{}, ready:false,
+  mem:{}, ready:false, failed:false,
   get remote(){return typeof window!=='undefined'&&window.storage&&typeof window.storage.get==='function'},
   async load(){
     try{
@@ -745,8 +745,13 @@ const Store={
     try{
       if(this.remote){await window.storage.set('trip',s)}
       else{localStorage.setItem('larchcanyon',s)}
+      if(this.failed){this.failed=false;if(typeof paintSync==='function')paintSync()}
       return true;
     }catch(e){
+      // a silent failure here means the edit exists only in memory and dies
+      // with the tab, so it has to reach the header, not just a toast
+      this.failed=true;
+      if(typeof paintSync==='function')paintSync();
       toast(e&&/quota/i.test(e.message||'')?'Could not save settings — device storage is full':'Could not save');
       return false;
     }
@@ -756,7 +761,15 @@ const Store={
 const CAP=4.4*1024*1024; // practical browser ceiling
 
 let S={done:{},items:{},bookings:[],photos:{},outfits:{},docs:[],todos:{},packing:{},spend:[],notes:{},cards:[],v:1};
-const save=()=>{Store.mem=S;Store.save()};
+/* Every edit lands on the device immediately, then schedules a push. Without the
+   nudge an edit only left the phone on the 5-minute timer — or never, if the app
+   was closed first. */
+const save=()=>{
+ Store.mem=S;
+ const ok=Store.save();
+ if(typeof Sync!=='undefined'&&Sync.nudge)Sync.nudge();
+ return ok;
+};
 
 
 /* ═══════════════════════════════════════════════════════════
@@ -1151,6 +1164,33 @@ const PHOTO_DIR='data/photos';
 
 const Sync={
  cfg:null, busy:false, last:null, err:null, queued:false,
+ nudgeT:null, auto:null,
+
+ /* An edit was made. Push it shortly, batching a burst of edits into one
+    commit rather than one commit per keystroke. */
+ nudge(){
+  if(!this.on)return;
+  clearTimeout(this.nudgeT);
+  this.nudgeT=setTimeout(()=>{
+   this.nudgeT=null;
+   if(this.on&&!this.busy&&navigator.onLine)this.run(true);
+  },15000);
+ },
+ /* Send anything pending right now — used when the app is being backgrounded,
+    because iOS freezes timers and the pending push would otherwise be lost. */
+ flush(){
+  if(!this.nudgeT)return;
+  clearTimeout(this.nudgeT);this.nudgeT=null;
+  if(this.on&&!this.busy&&navigator.onLine)this.run(true);
+ },
+ /* Safety net for edits that never got pushed, and for pulling the other
+    phone's changes. Registered once, whether or not sync was on at boot. */
+ startAuto(){
+  if(this.auto)return;
+  this.auto=setInterval(()=>{
+   if(this.on&&!this.busy&&navigator.onLine)this.run(true);
+  },1000*60*5);
+ },
 
  loadCfg(){try{this.cfg=JSON.parse(localStorage.getItem(CFGKEY)||'null')}catch(e){this.cfg=null}return this.cfg},
  saveCfg(c){this.cfg=c;localStorage.setItem(CFGKEY,JSON.stringify(c))},
@@ -1275,8 +1315,19 @@ const Sync={
   if(!ref.f||!this.on)return false;
   try{
    const j=await this.getFile(ref.f);
-   if(!j||!j.content)return false;
-   const bin=atob(j.content.replace(/\s/g,''));
+   if(!j)return false;
+   let b64=j.content;
+   // The Contents API returns no body for blobs over 1 MB. A detailed 1800px
+   // shot can land there, so fall back to the Blobs API, which has no such cap.
+   if((!b64||j.encoding==='none')&&j.sha){
+    const r=await fetch(`https://api.github.com/repos/${this.cfg.owner}/${this.cfg.repo}/git/blobs/${j.sha}`,
+     {headers:{Authorization:'Bearer '+this.cfg.token,Accept:'application/vnd.github+json',
+      'X-GitHub-Api-Version':'2022-11-28'}});
+    if(!r.ok)return false;
+    b64=(await r.json()).content;
+   }
+   if(!b64)return false;
+   const bin=atob(b64.replace(/\s/g,''));
    const a=new Uint8Array(bin.length);
    for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
    await Photos.add(new Blob([a],{type:'image/jpeg'}),ref.p);
@@ -1284,7 +1335,25 @@ const Sync={
   }catch(e){return false}
  },
 
- async run(silent){
+ /* Deleting a photo drops its reference, but the blob stayed in IndexedDB
+    forever. Over a three-week trip that quietly eats the phone's storage. */
+ async sweepBlobs(){
+  const live=new Set();
+  Object.values(S.photos||{}).forEach(v=>{if(v&&v.p)live.add(v.p)});
+  Object.values(S.outfits||{}).forEach(o=>{if(o)['img','img2'].forEach(f=>{if(o[f]&&o[f].p)live.add(o[f].p)})});
+  (S.docs||[]).forEach(d=>{if(d.img&&d.img.p)live.add(d.img.p)});
+  const keys=await IDB.keys();
+  // A state that references nothing while the device holds blobs means the
+  // merge went wrong, not that everything was deleted. Never sweep on that.
+  if(!live.size&&keys.length)return;
+  for(const k of keys){
+   if(live.has(k))continue;
+   await Photos.remove(k);
+  }
+ },
+
+ async run(silent,depth){
+  depth=depth||0;
   if(!this.on){if(!silent)toast('Set up GitHub sync first');return false}
   if(this.busy){this.queued=true;return false}
   if(!navigator.onLine){this.err='offline';paintSync();if(!silent)toast('No connection — saved on this device');return false}
@@ -1302,12 +1371,16 @@ const Sync={
    try{
     await this.putFile(STATE_PATH,body,remoteFile&&remoteFile.sha,'sync from '+(this.cfg.device||'device'));
    }catch(e){
-    if(e.conflict){this.busy=false;return this.run(silent)}  // someone else wrote; redo the merge
+    // someone else wrote; redo the merge against their version, but do not
+    // ping-pong forever if both phones are syncing at once
+    if(e.conflict&&depth<4){this.busy=false;return this.run(silent,depth+1)}
+    if(e.conflict)throw new Error('Both phones are syncing at once — try again in a moment');
     throw e;
    }
    Object.keys(merged).forEach(k=>{S[k]=merged[k]});
    await Store.save();
    await hydratePhotos().catch(()=>{});
+   await this.sweepBlobs().catch(()=>{});
    this.last=new Date();this.err=null;
    if(!silent)toast(uploaded?`Synced · ${uploaded} photo${uploaded===1?'':'s'} uploaded`:'Synced');
    return true;
@@ -1329,6 +1402,7 @@ function touch(section,key){S._t=S._t||{};S._t[section+':'+key]=Date.now()}
 /* ---- header sync chip ---- */
 function paintSync(){
  const el=document.getElementById('syncchip');if(!el)return;
+ if(Store.failed){el.className='chip bad';el.textContent='not saved';return}
  if(!Sync.on){el.className='chip';el.textContent='local only';return}
  if(Sync.busy){el.className='chip busy';el.textContent='syncing…';return}
  if(Sync.err){el.className='chip bad';el.textContent=Sync.err==='offline'?'offline':'sync failed';return}
@@ -1365,6 +1439,7 @@ function syncSheet(){
   try{
    await Sync.test(cfg);
    Sync.saveCfg(cfg);
+   Sync.startAuto();
    $('#ghmsg').innerHTML='<div class="alert ok">Connected. Syncing…</div>';
    const ok=await Sync.run(true);
    $('#ghmsg').innerHTML=ok?'<div class="alert ok"><b>Synced</b>Set the same repo up on the other phone and both will stay in step.</div>'
@@ -1394,6 +1469,14 @@ async function hydratePhotos(){
 }
 
 window.addEventListener('online',()=>{if(Sync.on)Sync.run(true)});
+
+/* iOS suspends a backgrounded PWA, so the 5-minute timer cannot be relied on.
+   Push pending edits on the way out, and pull the other phone's on the way in. */
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='hidden'){Sync.flush();return}
+ if(Sync.on&&!Sync.busy&&navigator.onLine)Sync.run(true);
+});
+window.addEventListener('pagehide',()=>Sync.flush());
 
 
 /* ═══════════════════ SHEETS ═══════════════════ */
@@ -2053,10 +2136,12 @@ if('serviceWorker'in navigator&&location.protocol==='https:'){
  const chip=document.getElementById('syncchip');
  if(chip)chip.onclick=()=>{if(Sync.on&&!Sync.busy)Sync.run();else syncSheet()};
  paintSync();
+ // registered unconditionally: connecting sync mid-session used to leave the
+ // device with no timer at all until the next reload
+ Sync.startAuto();
  if(Sync.on){
   await hydratePhotos().then(ok=>{if(ok)render()}).catch(()=>{});
   Sync.run(true);
-  setInterval(()=>{if(Sync.on&&!Sync.busy&&navigator.onLine)Sync.run(true)},1000*60*5);
  }
  const ph=tripPhase();
  if(ph.p==='during')setInterval(()=>{if(view==='now')vNow()},60000);
