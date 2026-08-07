@@ -13,7 +13,9 @@ test('a production-shaped state survives a merge against itself unchanged', () =
   expect(Object.keys(out.photos)).toHaveLength(2);
   expect(out.notes['8']).toBe('Sample note one');
   expect(out.notes['16']).toBe('Sample note two');
-  // the tombstone from the fixture must survive the round trip
+  // done:0.7 is present on both sides here (self-merge), so this only checks
+  // that its timestamp is preserved via the hasL&&hasR path, not tombstone
+  // handling — real tombstone coverage is test 5 below.
   expect(out._t!['done:0.7']).toBe(1785861151217);
 });
 
@@ -60,4 +62,22 @@ test('touch stamps the section:key the merge reads', () => {
   const s = emptyState();
   touch(s, 'notes', '4');
   expect(s._t!['notes:4']).toBeGreaterThan(0);
+});
+
+test('a booking the other phone deleted is not resurrected here', () => {
+  const a = emptyState();                    // this phone still has it
+  a.bookings = [{ id:'z', type:'stay', name:'Bryce', date:'2026-09-30' }];
+  at(a, 'bookings', 'z', 100);
+  const b = emptyState();                    // other phone deleted it, later
+  at(b, 'bookings', 'z', 200);
+  const out = merge(a, b);
+  expect(out.bookings).toHaveLength(0);
+  expect(out._t!['bookings:z']).toBe(200);
+});
+
+test('a corrupt section in the remote payload degrades to empty, it does not abort the sync', () => {
+  const a = emptyState(); a.notes['1'] = 'kept'; at(a, 'notes', '1', 100);
+  const b = { ...emptyState(), bookings: 0 as unknown as [] };
+  expect(() => merge(a, b)).not.toThrow();
+  expect(merge(a, b).notes['1']).toBe('kept');
 });

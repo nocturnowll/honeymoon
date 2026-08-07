@@ -16,14 +16,20 @@ export function merge(local: TripState, remote: TripState): TripState {
 
   for (const sec of SYNCED) {
     const isArr = (BY_ID as readonly string[]).includes(sec);
-    const L = (local as unknown as Bag)[sec] ?? (isArr ? [] : {});
-    const R = (remote as unknown as Bag)[sec] ?? (isArr ? [] : {});
+    // `||`, NOT `??`. The original falls back on ANY falsy section, so a
+    // corrupt remote state.json holding `"bookings": 0` degrades to empty
+    // instead of throwing mid-sync. `??` only catches null/undefined and
+    // would abort the whole sync on a payload the original survives.
+    const L = (local as unknown as Bag)[sec] || (isArr ? [] : {});
+    const R = (remote as unknown as Bag)[sec] || (isArr ? [] : {});
     const lmap: Bag = isArr
-      ? Object.fromEntries((L as { id: string }[]).map(o => [o.id, o])) : (L as Bag);
+      ? Object.fromEntries(((L || []) as { id: string }[]).map(o => [o.id, o]))
+      : (L as Bag);
     const rmap: Bag = isArr
-      ? Object.fromEntries((R as { id: string }[]).map(o => [o.id, o])) : (R as Bag);
+      ? Object.fromEntries(((R || []) as { id: string }[]).map(o => [o.id, o]))
+      : (R as Bag);
 
-    const keys = new Set([...Object.keys(lmap), ...Object.keys(rmap)]);
+    const keys = new Set([...Object.keys(lmap || {}), ...Object.keys(rmap || {})]);
     const pre = sec + ':';
     for (const tm of [lt, rt])
       for (const p of Object.keys(tm))
