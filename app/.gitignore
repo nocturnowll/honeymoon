@@ -6,6 +6,12 @@ out
 dist
 *.tgz
 
+# playwright
+test-results
+playwright-report
+blob-report
+playwright/.cache
+
 # code coverage
 coverage
 *.lcov

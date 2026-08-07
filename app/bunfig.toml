@@ -1,0 +1,8 @@
+# On this environment, `bun run <script>` sometimes spawns a real Node.js
+# subprocess under Rosetta translation (reporting process.arch as "x64" on
+# arm64 hardware), which breaks native N-API addon resolution — including
+# Vite/rolldown's bundler used by `vite build`/`vite preview`. Running
+# scripts through Bun's own runtime instead of shelling out to a translated
+# Node avoids the mismatch.
+[run]
+bun = true
