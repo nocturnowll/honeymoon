@@ -114,7 +114,7 @@ test('the banner appears on every night of a stay, not just the first', () => {
 ```
 Checkout day is deliberately excluded — you do not sleep there that night.
 
-- [ ] **Step 3:** Implement, then replace the exact-date match at `index.html:1084` (`b.date === d.d`) everywhere it appears in the SPA.
+- [ ] **Step 3:** Implement, then replace the exact-date match at `index.html:1110` (`b.date === d.d`) everywhere it appears in the SPA.
 - [ ] **Step 4: Real date pickers.** `<input type="date">` for From and To, replacing the dropdown of 22 trip days. Do **not** restrict to trip dates — a booking may legitimately fall outside. Show the computed night count live.
 - [ ] **Step 5:** Times (`checkin`/`checkout`) stay, but become optional and visually secondary.
 - [ ] **Step 6:** Commit.
@@ -126,7 +126,7 @@ Checkout day is deliberately excluded — you do not sleep there that night.
 **Files:** Modify `app/src/state/schema.ts`, `app/src/state/sync/photos.ts`, `app/src/components/BookingSheet.tsx`, `app/src/lib/image.ts`
 
 - [ ] **Step 1:** `files?: PhotoRef[]` on `Booking`. `collectRefs` already walks `bookings[].files` — verify with a test that it does, since that path has never had a real payload.
-- [ ] **Step 2:** Accept **PDF as well as image**. `processImage` (`index.html:864`) rejects non-images; PDFs must skip resizing and store the raw Blob. The extension logic in `uploadPending` already branches on `application/pdf`.
+- [ ] **Step 2:** Accept **PDF as well as image**. `processImage` (`index.html:903-920`) rejects non-images; PDFs must skip resizing and store the raw Blob. The extension logic in `uploadPending` already branches on `application/pdf`.
 - [ ] **Step 3: Delete the stale warning.** The live app says *"PDFs are far too large for browser storage, so keep those in your email."* That was true when everything was base64 in localStorage's 5MB. Photos moved to IndexedDB; a 150KB Booking.com PDF is nothing. Remove the copy and the restriction.
 - [ ] **Step 4:** Render an attachment as a thumbnail (image) or a labelled chip (PDF), opening via object URL. iOS renders PDFs natively — no PDF.js, no bundle cost.
 - [ ] **Step 5:** Deleting a booking must release its attachment refs so `sweepOrphans` reclaims them. Test it.
@@ -144,7 +144,7 @@ Checkout day is deliberately excluded — you do not sleep there that night.
 - [ ] **Step 2: Precache the fonts.** The whole reason Task 8 of Plan 1 self-hosted them was that the live service worker only caches same-origin responses. Verify the three woff2 files appear in the generated manifest — if they do not, the offline typography bug returns.
 - [ ] **Step 3:** Runtime caching: never cache `api.github.com`, `open-meteo`, or `er-api.com`. Ported from `index.html`'s `sw.js:25-26`.
 - [ ] **Step 4: Confirm the idb-harness is absent from the precache manifest.** It is gated out of production builds, but this is the mechanism that would have made an accidental inclusion permanent on every device.
-- [ ] **Step 5:** Update prompt — "New version ready", skip waiting, reload. Ported from `index.html:2020-2036`.
+- [ ] **Step 5:** Update prompt — "New version ready", skip waiting, reload. Ported from `index.html:2129-2145`.
 - [ ] **Step 6:** Commit.
 
 ---

@@ -39,11 +39,11 @@ report and leave it — this rule caught a real divergence in Plan 1 (`??` vs
 
 - [ ] **Step 1: Read the ground truth**
 
-`index.html:1918-1951` (`spendSheet`) writes:
+`index.html:1944-1975` (`spendSheet`) writes:
 ```js
 S.spend.push({id, what, amt, cur, card, date})
 ```
-`index.html:1890-1917` (`cardSheet`) writes:
+`index.html:1893-1942` (`cardSheet`) writes:
 ```js
 {id, type, nick, bank, network, holder, last4, markup, fee, limit}
 ```
@@ -71,14 +71,14 @@ test('Card matches the field names the live app writes, including cash entries',
 ```ts
 export interface Spend {
   id: string; date: string; cur: string;
-  amt: number;              // NOT `amount` — index.html:1946 writes `amt`
+  amt: number;              // NOT `amount` — index.html:1972 writes `amt`
   card?: string; what?: string;
 }
 
 export interface Card {
   id: string;
   type: string;             // 'cash' or a card network type
-  nick: string;             // NOT `name` — index.html:1905 writes `nick`
+  nick: string;             // NOT `name` — index.html:1930 writes `nick`
   bank?: string; network?: string; holder?: string; last4?: string;
   markup?: number; fee?: number;
   limit?: number;           // credit limit, or the amount carried when type==='cash'
@@ -102,9 +102,9 @@ Deferred from Plan 1 because they belong with the screens that consume them. Bot
 
 - [ ] **Step 1: Port from the live app**
 
-`dates.ts` from `index.html:844-858` (`dObj` through `tripPhase`). Note `dObj` deliberately parses `y-m-d` into a **local** `new Date(y, m-1, d)` rather than `Date.parse`, which would treat it as UTC and shift the day. Keep that.
+`dates.ts` from `index.html:870-880` (`dObj` through `tripPhase`). Note `dObj` deliberately parses `y-m-d` into a **local** `new Date(y, m-1, d)` rather than `Date.parse`, which would treat it as UTC and shift the day. Keep that.
 
-`fx.ts` from `index.html:771-830` (`FX` and `cardRate`). Keep the `larchcanyon.fx` cache key, the 6-hour refresh threshold, the `open.er-api.com` endpoint, and the `FALLBACK` rates.
+`fx.ts` from `index.html:810-858` (`FX` and `cardRate`). Keep the `larchcanyon.fx` cache key, the 6-hour refresh threshold, the `open.er-api.com` endpoint, and the `FALLBACK` rates.
 
 - [ ] **Step 2: Write the failing tests**
 
@@ -164,11 +164,11 @@ Routes: `#/now` (default), `#/itinerary`, `#/itinerary/day/:idx`, `#/budget`, `#
 
 - [ ] **Step 2: Five-tab nav**
 
-Now · Itinerary · Budget · Lists · Map. Icons ported from `index.html:895-902` (`ICONS`). Each button ≥44px. `nav { user-select: none }` is already in `base.css`. Bottom-fixed with `env(safe-area-inset-bottom)` as the live app does at `index.html:60-70`.
+Now · Itinerary · Budget · Lists · Map. Icons ported from `index.html:934-941` (`ICONS`). Each button ≥44px. `nav { user-select: none }` is already in `base.css`. Bottom-fixed with `env(safe-area-inset-bottom)` as the live app does at `index.html:60-70`.
 
 - [ ] **Step 3: Header**
 
-Brand, trip countdown or day-N (from `tripPhase()`), the sync chip, and a gear opening settings. Port the chip states from `index.html:1330-1337`, plus `not saved` when `store.status().saveFailed`.
+Brand, trip countdown or day-N (from `tripPhase()`), the sync chip, and a gear opening settings. Port the chip states from `index.html:1429-1437`, plus `not saved` when `store.status().saveFailed`.
 
 **The chip must show a distinct disabled state while `VITE_SYNC_ENABLED` is off** — otherwise the SPA looks like it is syncing when it structurally cannot. Use `sync off` in the neutral style.
 
@@ -182,7 +182,7 @@ One broken screen must not white-screen the app in a canyon. Fallback shows the 
 
 ### Task 4: Complete the sync engine — photo download and boot sync
 
-Plan 1's final review flagged both. `resolveRef` is written, exported, and imported nowhere: there is **no photo download half**, so the partner's photos would never reach the device. And there is no sync-on-boot, which the legacy app has at `index.html:2144`.
+Plan 1's final review flagged both. `resolveRef` is written, exported, and imported nowhere: there is **no photo download half**, so the partner's photos would never reach the device. And there is no sync-on-boot, which the legacy app has at `index.html:2168`.
 
 Both are prerequisites for any screen that renders a photo. Sync stays gated off; this is wiring, not activation.
 
@@ -190,7 +190,7 @@ Both are prerequisites for any screen that renders a photo. Sync stays gated off
 
 **Interfaces produced:** `store.hydratePhotos()`, `store.photoUrl(ref)`; boot sync inside `startAuto()` or an explicit `store.boot()`
 
-- [ ] **Step 1:** Port `hydratePhotos` from `index.html:1384-1394` — collect refs, resolve any not already in `Photos.url`, return whether anything arrived. Call it in `sync()` after the merge is persisted and **before** `sweepOrphans`, matching the legacy order at `index.html:1382`.
+- [ ] **Step 1:** Port `hydratePhotos` from `index.html:1485-1494` — collect refs, resolve any not already in `Photos.url`, return whether anything arrived. Call it in `sync()` after the merge is persisted and **before** `sweepOrphans`, matching the legacy order at `index.html:1408`.
 - [ ] **Step 2:** Object-URL cache: an id → `URL.createObjectURL` map created once, revoked on removal. Port from `index.html:660-700` (`Photos`).
 - [ ] **Step 3:** Boot sync — on `store.boot()`, if configured and online, run one sync immediately rather than waiting up to five minutes.
 - [ ] **Step 4:** Tests — `hydratePhotos` requests only refs not already local; boot sync fires once when configured; **neither fires while `syncEnabled` is false**. That last one guards the Plan 1 Critical.
@@ -204,11 +204,11 @@ The daily driver. Answers one question — what is happening now and next.
 
 **Files:** Create `app/src/routes/Now.tsx`, `app/src/components/NowRail.tsx`, `app/src/components/WeatherStrip.tsx`, `app/src/lib/weather.ts`
 
-- [ ] **Step 1:** Port `WX` and `loadWeather` from `index.html:859-885` and `1009-1047`. Open-Meteo, cached, seasonal averages before ~30 Aug and live after. Keep the `est` flag and the "seasonal averages" note.
-- [ ] **Step 2:** Port `tripPhase` branches from `vNow` (`index.html:945-976`): before → countdown + next todos; during → current item, next item, day N of 22; after → a closing state.
-- [ ] **Step 3:** Port `nowRail` (`index.html:992-1008`) — the signature element. Current schedule item prominent, next beneath.
-- [ ] **Step 4:** Today's bookings, including the check-in-versus-arrival warning from `index.html:1088-1099`. That warning is genuinely useful and must survive the redesign.
-- [ ] **Step 5:** The 60-second re-render while `tripPhase().p === 'during'` (`index.html:2149`) becomes a React interval, cleaned up on unmount.
+- [ ] **Step 1:** Port `WX` and `loadWeather` from `index.html:885-898` and `1035-1060`. Open-Meteo, cached, seasonal averages before ~30 Aug and live after. Keep the `est` flag and the "seasonal averages" note.
+- [ ] **Step 2:** Port `tripPhase` branches from `vNow` (`index.html:974-989`): before → countdown + next todos; during → current item, next item, day N of 22; after → a closing state.
+- [ ] **Step 3:** Port `nowRail` (`index.html:1018-1034`) — the signature element. Current schedule item prominent, next beneath.
+- [ ] **Step 4:** Today's bookings, including the check-in-versus-arrival warning from `index.html:1109-1125`. That warning is genuinely useful and must survive the redesign.
+- [ ] **Step 5:** The 60-second re-render while `tripPhase().p === 'during'` (`index.html:2173`) becomes a React interval, cleaned up on unmount.
 - [ ] **Step 6:** Commit.
 
 ---
@@ -224,8 +224,8 @@ The screen this rewrite was requested for. Structure is leg → place → days.
 - [ ] **Step 3: Sticky headers.** Leg name sticky at top; the day header sticky while its own day scrolls. Two stacked sticky levels — verify on a real viewport that they do not overlap.
 - [ ] **Step 4: Place header, carrying the outfit.** `S.outfits` is keyed by **base location** (`yos`, `zio`, `cmr`), not by day, so it belongs on the place, not the day. Show the base name, night count, the date span, and the climate range from `LOC[base].cl`.
   **The date span is not decoration** — several days share one base, so an outfit edited from day 5 is the same record as days 6 and 7. Without the span this reads as a bug.
-- [ ] **Step 5: Day card.** Ported from `index.html:1037-1068`: date, title, place, drive time, progress bar, sunrise/sunset tags, schedule items, day photos, note.
-- [ ] **Step 6: Schedule item.** Checkbox ≥44px — verify it actually enlarges; `min-width`/`min-height` on a bare `input[type=checkbox]` may need an `appearance` reset (carried finding from Plan 1 Task 8). Time is tappable to adjust, per `editTime` at `index.html:1418`.
+- [ ] **Step 5: Day card.** Ported from `index.html:1063-1095`: date, title, place, drive time, progress bar, sunrise/sunset tags, schedule items, day photos, note.
+- [ ] **Step 6: Schedule item.** Checkbox ≥44px — verify it actually enlarges; `min-width`/`min-height` on a bare `input[type=checkbox]` may need an `appearance` reset (carried finding from Plan 1 Task 8). Time is tappable to adjust, per `editTime` at `index.html:1514`.
 - [ ] **Step 7:** No full re-render. Keyed lists, per-item state. Ticking an item must not rebuild the list — this is the single biggest "feels like a web page" defect in the live app.
 - [ ] **Step 8:** Commit.
 
@@ -238,9 +238,9 @@ A `Days | Bookings` segmented control at the top of the Itinerary tab. Read-only
 **Files:** Create `app/src/components/BookingList.tsx`, `app/src/components/BookingSheet.tsx`, `app/src/components/Sheet.tsx`
 
 - [ ] **Step 1:** `Sheet` — a real bottom sheet: drag-to-dismiss with momentum, backdrop tap, Escape, focus trap. Reused by every sheet in the app.
-- [ ] **Step 2:** Booking list grouped by date, port the card from `index.html:1585-1600`, Maps deep link preserved.
-- [ ] **Step 3:** Booking sheet ported from `index.html:1535-1560`, unchanged model for now.
-- [ ] **Step 4:** The unbooked-nights warning from `index.html:1573-1577`. **Note in the code that it currently over-reports** — a multi-night stay logged on one date makes the other nights look unbooked. Plan 3 fixes the cause; do not paper over it here.
+- [ ] **Step 2:** Booking list grouped by date, port the card from `index.html:1609-1620`, Maps deep link preserved.
+- [ ] **Step 3:** Booking sheet ported from `index.html:1561-1588`, unchanged model for now.
+- [ ] **Step 4:** The unbooked-nights warning from `index.html:1591-1596`. **Note in the code that it currently over-reports** — a multi-night stay logged on one date makes the other nights look unbooked. Plan 3 fixes the cause; do not paper over it here.
 - [ ] **Step 5:** `S.docs` (Receipts & tickets) still renders — removing it would break the data contract.
 - [ ] **Step 6:** Commit.
 
@@ -250,7 +250,7 @@ A `Days | Bookings` segmented control at the top of the Itinerary tab. Read-only
 
 **Files:** Create `app/src/routes/Lists.tsx`
 
-- [ ] **Step 1:** `To do | Packing` segmented control, ported from `vPack` at `index.html:1625-1665`.
+- [ ] **Step 1:** `To do | Packing` segmented control, ported from `vPack` at `index.html:1652-1687`.
 - [ ] **Step 2:** Grouped accordions with per-group counts; overdue todos flagged against `todayISO()`.
 - [ ] **Step 3:** Checkboxes ≥44px, same component as the itinerary.
 - [ ] **Step 4:** Commit.
@@ -263,10 +263,10 @@ A `Days | Bookings` segmented control at the top of the Itinerary tab. Read-only
 
 **Files:** Create `app/src/routes/Budget.tsx`, `app/src/components/CardSheet.tsx`, `app/src/components/SpendSheet.tsx`, `app/src/components/RateStrip.tsx`
 
-- [ ] **Step 1:** Rate strip — live mid-market rates, the date taken, and a `cached` tag when stale. Ported from `index.html:1742-1760`.
-- [ ] **Step 2:** Card list — per card the effective rupiah rate (`cardRate`), spend to date, headroom against `limit`, and a warning past 85%. Ported from `vMoney` (`index.html:1737-1866`). Cash entries (`type === 'cash'`) count down instead.
+- [ ] **Step 1:** Rate strip — live mid-market rates, the date taken, and a `cached` tag when stale. Ported from `index.html:1779-1791`.
+- [ ] **Step 2:** Card list — per card the effective rupiah rate (`cardRate`), spend to date, headroom against `limit`, and a warning past 85%. Ported from `vMoney` (`index.html:1763-1891`). Cash entries (`type === 'cash'`) count down instead.
 - [ ] **Step 3:** "Cheapest card to spend on" comparison when more than one card exists.
-- [ ] **Step 4:** Card and spend sheets, ported from `index.html:1867-1951`. **Only last-4 is ever stored** — no full numbers, no CVV. Keep that guarantee and the copy that states it.
+- [ ] **Step 4:** Card and spend sheets, ported from `index.html:1893-1975`. **Only last-4 is ever stored** — no full numbers, no CVV. Keep that guarantee and the copy that states it.
 - [ ] **Step 5:** Tests over the screen's derived numbers — total spend per card, headroom percentage, cheapest-card selection. Use fabricated cards.
 - [ ] **Step 6: Manual gate.** Before this task is marked complete, compare side by side against the live app with the same cards and spends entered in both, and record the numbers in the report. This is the one screen where "looks right" is not enough.
 - [ ] **Step 7:** Commit.
@@ -279,8 +279,8 @@ Everything from the old Export tab, behind the header gear.
 
 **Files:** Create `app/src/components/SettingsSheet.tsx`
 
-- [ ] **Step 1:** Sync setup form ported from `syncSheet` (`index.html:1340-1381`) — owner, repo, branch, device, token. **Keep the warning that the data repo must be private.** While `VITE_SYNC_ENABLED` is off, show the form but disable Connect with an explanation.
-- [ ] **Step 2:** Download backup — JSON of bookings, ticks, notes. Port from `vOut` (`index.html:1952-2058`).
+- [ ] **Step 1:** Sync setup form ported from `syncSheet` (`index.html:1440-1482`) — owner, repo, branch, device, token. **Keep the warning that the data repo must be private.** While `VITE_SYNC_ENABLED` is off, show the form but disable Connect with an explanation.
+- [ ] **Step 2:** Download backup — JSON of bookings, ticks, notes. Port from `vOut` (`index.html:1978-2084`).
 - [ ] **Step 3:** Storage usage via `navigator.storage.estimate()`, and the persisted-storage request.
 - [ ] **Step 4:** App updates — show `BUILD`, offer a hard refresh.
 - [ ] **Step 5:** Commit.
