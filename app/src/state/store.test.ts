@@ -1,7 +1,11 @@
-import { expect, test, beforeEach, vi } from 'vitest';
+import { expect, test, beforeEach, afterEach, vi } from 'vitest';
 import { store } from './store';
 
-beforeEach(() => { localStorage.clear(); store.reset(); });
+const cfg = { owner:'o', repo:'r', branch:'main', token:'t', device:'d' };
+const online = () => vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+
+beforeEach(() => { localStorage.clear(); store.reset(); vi.useFakeTimers(); });
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 test('a mutation stamps _t so the merge can see it', () => {
   store.mutate('notes', '5', s => { s.notes['5'] = 'hello'; });
@@ -26,4 +30,45 @@ test('a failed write is reported in status rather than swallowed', () => {
   store.mutate('notes', '5', s => { s.notes['5'] = 'x'; });
   expect(store.status().saveFailed).toBe(true);
   spy.mockRestore();
+});
+
+test('an edit schedules a debounced push rather than pushing immediately', () => {
+  store.setConfig(cfg); online();
+  const spy = vi.spyOn(store, 'sync').mockResolvedValue(true);
+  store.mutate('notes', '5', s => { s.notes['5'] = 'x'; });
+  expect(spy).not.toHaveBeenCalled();
+  vi.advanceTimersByTime(15000);
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
+test('a burst of edits coalesces into a single push', () => {
+  store.setConfig(cfg); online();
+  const spy = vi.spyOn(store, 'sync').mockResolvedValue(true);
+  for (let i = 0; i < 5; i++) {
+    store.mutate('notes', String(i), s => { s.notes[String(i)] = 'x'; });
+    vi.advanceTimersByTime(1000);
+  }
+  vi.advanceTimersByTime(15000);
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
+test('flush sends a pending push immediately, without waiting for the timer', () => {
+  store.setConfig(cfg); online();
+  const spy = vi.spyOn(store, 'sync').mockResolvedValue(true);
+  store.mutate('notes', '5', s => { s.notes['5'] = 'x'; });
+  store.flush();
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
+test('flush with nothing pending does nothing', () => {
+  store.setConfig(cfg); online();
+  const spy = vi.spyOn(store, 'sync').mockResolvedValue(true);
+  store.flush();
+  expect(spy).not.toHaveBeenCalled();
+});
+
+test('startAuto registers exactly one interval however often it is called', () => {
+  const spy = vi.spyOn(globalThis, 'setInterval');
+  store.startAuto(); store.startAuto(); store.startAuto();
+  expect(spy).toHaveBeenCalledTimes(1);
 });

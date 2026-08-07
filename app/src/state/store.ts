@@ -36,8 +36,10 @@ class Store {
   reset() {
     this.state = emptyState(); this.cfg = null; this.busy = false;
     this.error = null; this.last = null; this.saveFailed = false;
+    this.queued = false;
     this.listeners.clear();
     if (this.nudgeT) { clearTimeout(this.nudgeT); this.nudgeT = null; }
+    if (this.auto) { clearInterval(this.auto); this.auto = null; }
   }
 
   /** The only way state changes. Stamps `_t`, persists, schedules a push. */
