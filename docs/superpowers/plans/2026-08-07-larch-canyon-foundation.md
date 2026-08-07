@@ -1277,11 +1277,14 @@ Values are copied verbatim from the legacy app's `:root` block so the redesign
 starts from the identical palette.
 
 ```css
-@font-face{font-family:'Bricolage Grotesque';src:url('/honeymoon/next/fonts/bricolage-latin.woff2') format('woff2');
+/* Relative URLs, resolved from this file's own location. Vite rewrites and
+   fingerprints them, so they stay correct when `base` changes at cutover.
+   An absolute /honeymoon/next/… path would break at that moment. */
+@font-face{font-family:'Bricolage Grotesque';src:url('../assets/fonts/bricolage-latin.woff2') format('woff2');
   font-weight:400 800;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F}
-@font-face{font-family:'Inter';src:url('/honeymoon/next/fonts/inter-latin.woff2') format('woff2');
+@font-face{font-family:'Inter';src:url('../assets/fonts/inter-latin.woff2') format('woff2');
   font-weight:400 600;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F}
-@font-face{font-family:'JetBrains Mono';src:url('/honeymoon/next/fonts/jetbrains-latin.woff2') format('woff2');
+@font-face{font-family:'JetBrains Mono';src:url('../assets/fonts/jetbrains-latin.woff2') format('woff2');
   font-weight:400 600;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F}
 
 :root{
