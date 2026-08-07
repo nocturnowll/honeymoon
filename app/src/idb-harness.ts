@@ -1,7 +1,13 @@
-// Test-only entry point. Exercises the app's real IndexedDB helpers from
-// state/persist.ts in a genuine browser, since jsdom has no IndexedDB and
-// this path is otherwise completely uncovered. Not linked from index.html —
-// never reached by real users, only by app/e2e/smoke.spec.ts.
+// E2E-ONLY. Exercises the app's real IndexedDB helpers from state/persist.ts
+// in a genuine browser, since jsdom has no IndexedDB and this path is
+// otherwise completely uncovered. Not linked from index.html — never reached
+// by real users, only by app/e2e/smoke.spec.ts.
+//
+// window.__idbTest.del() is an unauthenticated delete primitive against the
+// app's real IndexedDB store. idb-harness.html is gated out of the rollup
+// input in vite.config.ts (only added when E2E=1) so a normal `bun run
+// build` never emits this file or its chunk into dist/ — do not remove that
+// gate or re-add this entry to the default build input.
 import { idbPut, idbGet, idbDel, idbKeys } from './state/persist';
 
 declare global {
