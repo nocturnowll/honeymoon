@@ -25,9 +25,28 @@
 
 **Interfaces produced:** `project(lon, lat, view)`, `unproject(x, y, view)`, `fitBounds(points, size)`, `TRIP_BOUNDS`
 
-- [ ] **Step 1: Source the geometry.** Natural Earth 1:50m, public domain: coastline, `admin_1_states_provinces_lines` (US + Canada), and `roads` filtered to the trip bbox. Bounding box covering all 12 bases with padding: roughly **lon −124 to −110, lat 33 to 52**.
+- [ ] **Step 1: Source the geometry.** Natural Earth, public domain: coastline and `admin_1_states_provinces_lines` (US + Canada) at 1:50m. **Roads are only published at 1:10m** — if you want them, take `ne_10m_roads` and clip hard, or drop roads entirely and report that you did. Do not stall hunting for a 1:50m roads layer; it does not exist. Bounding box covering all 12 bases with padding: roughly **lon −124 to −110, lat 33 to 52**.
 - [ ] **Step 2: Reduce it.** A build script that clips to the bbox, simplifies (Douglas–Peucker, tolerance tuned by eye), rounds coordinates to 4 decimal places, and writes compact GeoJSON. **Target ≤200KB total** — smaller than the 608KB of PNGs it replaces. Record the actual sizes in the report.
-- [ ] **Step 3: Projection maths.** Web Mercator, with tests:
+- [ ] **Step 3: Define `BASES` — read this before writing any test.** Verified against `app/src/data/itinerary.ts` on 2026-08-08:
+
+  - `LOC` holds **12** entries, all with `lat`/`lon`.
+  - **`LOC` key order is NOT trip order.** `LOC` lists `sea, yyc, cmr, …`; the days run `sea, cmr, yyc, …` — Canmore before Calgary. Deriving the route from `Object.keys(LOC)` draws it wrong. **Trip order must come from `DAYS`**, taking each `base` in first-appearance order.
+  - **`dvl` (Death Valley) appears in `LOC` but no day uses it as a base** — 11 of the 12 are overnight bases. It is a waypoint, not a stop.
+
+  So export two things, and keep them distinct:
+
+```ts
+// Every pin worth drawing, including waypoints like Death Valley. Used by fitBounds.
+export const BASES: { key: string; lon: number; lat: number }[] =
+  Object.entries(LOC).map(([key, l]) => ({ key, lon: l.lon, lat: l.lat }));
+
+// Overnight bases in the order the trip actually visits them. Used by the route polyline.
+export const ROUTE: string[] = [...new Set(DAYS.map(d => d.base))];
+```
+
+  `BASES.length === 12`, `ROUTE.length === 11`, and `ROUTE` must not contain `dvl`. Assert all three.
+
+- [ ] **Step 4: Projection maths.** Web Mercator, with tests:
 
 ```ts
 test('projection round-trips a known coordinate', () => {
@@ -50,7 +69,9 @@ test('fitBounds contains every trip base', () => {
 ```
 The bases span ~17° of latitude (Canmore 51.089 to LA 34.052), so a naive equirectangular fit distorts badly at the top. Mercator matters here.
 
-- [ ] **Step 4:** Commit.
+Real extent, measured: lon **−122.419 → −111.456**, lat **34.052 → 51.089**. The bbox in Step 1 (−124…−110, 33…52) clears it with padding on every side.
+
+- [ ] **Step 5:** Commit.
 
 ---
 
@@ -61,7 +82,7 @@ The bases span ~17° of latitude (Canmore 51.089 to LA 34.052), so a naive equir
 **Interfaces produced:** `<TripMap legs? bases? interactive? onPinTap? />`
 
 - [ ] **Step 1:** Render base geometry as SVG paths, styled from the existing tokens — `--line-2` for borders, `--stone` for roads, `--paper` background. It should read as a drawn map, not a screenshot.
-- [ ] **Step 2:** The 12 pins from `LOC` (`lat`/`lon` already present), plus a route polyline between consecutive bases in trip order.
+- [ ] **Step 2:** All **12** pins from `BASES`, plus a route polyline over **`ROUTE`** (the 11 overnight bases, in trip order). Death Valley gets a pin but the route does not detour through it. Do not iterate `LOC` for the route — see Task 1 Step 3.
 - [ ] **Step 3:** Pinch-zoom and pan via pointer events. `touch-action: none` on the canvas only — not on the page, or the tab stops scrolling.
 - [ ] **Step 4:** Tap a pin → callback with the base key. In the Map tab this navigates to the first day at that base.
 - [ ] **Step 5:** Two sizes from one component: full (own tab) and mini (scoped to one leg, non-interactive, inside the itinerary place header). `interactive={false}` disables gestures.
@@ -113,6 +134,8 @@ test('the banner appears on every night of a stay, not just the first', () => {
 });
 ```
 Checkout day is deliberately excluded — you do not sleep there that night.
+
+**Accepted divergence, do not "fix" it:** the live app keeps its exact-date match (`vBook`'s unbooked filter and `bookingBanner`), so while both builds coexist the legacy app will still over-report unbooked nights and show a stay's banner only on its first day. That is expected. The legacy app is not to be edited for this — it retires at cutover (Task 7). Its save path uses `Object.assign(b, o)`, which merges rather than replaces, so editing a booking there **preserves** `end` and `files` written by the SPA. Verified 2026-08-08.
 
 - [ ] **Step 3:** Implement, then replace the exact-date match at `index.html:1110` (`b.date === d.d`) everywhere it appears in the SPA.
 - [ ] **Step 4: Real date pickers.** `<input type="date">` for From and To, replacing the dropdown of 22 trip days. Do **not** restrict to trip dates — a booking may legitimately fall outside. Show the computed night count live.
