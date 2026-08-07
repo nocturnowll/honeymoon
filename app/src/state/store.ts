@@ -4,7 +4,7 @@ import { loadState, saveState, loadSyncConfig, type SyncConfig } from './persist
 import { merge, touch } from './sync/merge';
 import { GitHubRepo, ConflictError, encodeUtf8, decodeUtf8 } from './sync/github';
 import { collectRefs, resolveRef, uploadPending, sweepOrphans } from './sync/photos';
-import { idbGet, idbKeys } from './persist';
+import { idbDel, idbGet, idbKeys, idbPut } from './persist';
 import type { PhotoRef } from './schema';
 
 const STATE_PATH = 'data/state.json';
@@ -87,6 +87,26 @@ class Store {
   }
 
   getPhotoRevision() { return this.photoRevision; }
+
+  /** Save a user-selected image locally and make it immediately renderable. */
+  async addLocalPhoto(blob: Blob): Promise<PhotoRef> {
+    const id = `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+    await idbPut(id, blob);
+    this.photoUrls.set(id, URL.createObjectURL(blob));
+    this.photoRevision++;
+    this.emit();
+    return { p: id };
+  }
+
+  /** Remove a local blob when a user replaces or clears an outfit photo. */
+  async removeLocalPhoto(ref: PhotoRef | undefined): Promise<void> {
+    if (!ref) return;
+    const url = this.photoUrls.get(ref.p);
+    if (url) { URL.revokeObjectURL(url); this.photoUrls.delete(ref.p); }
+    await idbDel(ref.p);
+    this.photoRevision++;
+    this.emit();
+  }
 
   async hydratePhotos(repo?: GitHubRepo): Promise<boolean> {
     if (!this.syncEnabled || !repo) return false;
