@@ -110,8 +110,12 @@ this is the `BY_ID` list the merge depends on.
 - **`merge.ts` is ported line-for-line, not rewritten.** Tombstones, per-field
   timestamps and deletions surviving a round trip are subtle and currently
   correct. It gains types and tests, not improvements.
-- **Tests use the real snapshot.** The actual `data/state.json` from the repo —
-  16 photos, two notes, the `done:0.7` tombstone — is the fixture.
+- **Tests use a production-*shaped* fixture, never the real snapshot.**
+  `nocturnowll/honeymoon` is **public** — that is the whole reason trip data
+  lives in the separate private repo — so the committed fixture mirrors the real
+  file's structure and edge cases (`_t` stamps, `{f: …}` photo refs, the
+  `done:0.7` tombstone, id-keyed arrays) with fabricated content. A real
+  snapshot may be dropped in locally as `state.real.json`, which is gitignored.
 
 ### Additive fields
 

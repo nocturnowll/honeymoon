@@ -1,3 +1,7 @@
 .DS_Store
 node_modules/
 *.log
+
+# Never commit real trip data — this repo is PUBLIC, data lives in the private repo
+app/src/state/__fixtures__/state.real.json
+**/state.real.json
