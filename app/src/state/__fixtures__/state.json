@@ -1,0 +1,25 @@
+{
+  "_t": {
+    "done:0.7": 1785861151217,
+    "photos:1.0": 1785861489780,
+    "photos:15.2": 1785861817695,
+    "notes:8": 1785862471786,
+    "notes:16": 1785863619274
+  },
+  "done": { "0.7": false },
+  "items": {},
+  "bookings": [],
+  "photos": {
+    "1.0": { "f": "data/photos/photos_1.0.jpg" },
+    "15.2": { "f": "data/photos/photos_15.2.jpg" }
+  },
+  "outfits": {},
+  "docs": [],
+  "todos": {},
+  "packing": {},
+  "spend": [],
+  "notes": { "8": "Sample note one", "16": "Sample note two" },
+  "cards": [],
+  "_updated": "2026-08-06T16:52:14.613Z",
+  "_by": "Test Device"
+}

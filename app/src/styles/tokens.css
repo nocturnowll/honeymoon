@@ -1,0 +1,20 @@
+/* Relative URLs, resolved from this file's own location. Vite rewrites and
+   fingerprints them, so they stay correct when `base` changes at cutover.
+   An absolute /honeymoon/next/… path would break at that moment. */
+@font-face{font-family:'Bricolage Grotesque';src:url('../assets/fonts/bricolage-latin.woff2') format('woff2');
+  font-weight:400 800;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:'Inter';src:url('../assets/fonts/inter-latin.woff2') format('woff2');
+  font-weight:400 600;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:'JetBrains Mono';src:url('../assets/fonts/jetbrains-latin.woff2') format('woff2');
+  font-weight:400 600;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F}
+
+:root{
+  --ink:#1B2A24; --ink-2:#31423A; --paper:#FBF9F4; --card:#FFFFFF;
+  --larch:#D9A441; --canyon:#B4593A; --glacier:#3F7285; --stone:#6E7A73;
+  --line:#E2E0D6; --line-2:#CFCEC2; --ok:#4A7C59; --warn:#C4791F;
+  --sh:0 1px 2px rgba(27,42,36,.05),0 4px 14px rgba(27,42,36,.05);
+  --d:'Bricolage Grotesque',system-ui,sans-serif;
+  --b:'Inter',system-ui,-apple-system,sans-serif;
+  --m:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --tap:44px;
+}

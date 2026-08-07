@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Stand up the Vite/React/TypeScript foundation and port the entire data
-and sync layer, proven by tests against the real production `state.json`, without
+and sync layer, proven by tests against a production-shaped fixture, without
 disturbing the live app.
 
 **Architecture:** The SPA is built in `app/` and published to `/honeymoon/next/`
@@ -103,7 +103,7 @@ compile until this replaces it.
 }
 ```
 
-`resolveJsonModule` matters — Task 2 imports the production `state.json`
+`resolveJsonModule` matters — Task 2 imports the JSON test
 fixture directly.
 
 - [ ] **Step 3: Write `app/index.html`**
@@ -223,15 +223,59 @@ on these names.
 - Produces: `TripState`, `Booking`, `PhotoRef`, `Outfit`, `TripDoc`, `Spend`,
   `Card`, `SYNCED`, `BY_ID`, `emptyState()`
 
-- [ ] **Step 1: Copy the real production state as a fixture**
+- [ ] **Step 1: Build a synthetic fixture with the real structure**
 
-```bash
-cp ../_backups/honeymoon-data/data/state.json \
-   app/src/state/__fixtures__/state.json
+> **Never commit the real `state.json`.** `nocturnowll/honeymoon` is a **public**
+> repository — that is the entire reason trip data lives in the separate private
+> `honeymoon-data` repo. The real snapshot holds Hershania's notes today, and
+> will hold hotel addresses, confirmation numbers and card last-4s before the
+> trip. Committing it would publish exactly what the two-repo architecture
+> exists to protect.
+
+The fixture must mirror the **shape and edge cases** of the production file, with
+fabricated content. Those edge cases, taken from the real snapshot, are what the
+tests actually need:
+
+- a `_t` map with `section:key` entries whose values are epoch millis
+- `photos` holding `{ "f": "data/photos/<id>.jpg" }` reference objects
+- at least one **tombstone**: a `_t` entry whose key is absent from its section
+  (the real file has `done:0.7` stamped while `done` holds `{"0.7": false}`)
+- `_updated` as an ISO string and `_by` as a device name
+- every section from `SYNCED` present, with the id-keyed ones as arrays
+
+```json
+{
+  "_t": {
+    "done:0.7": 1785861151217,
+    "photos:1.0": 1785861489780,
+    "photos:15.2": 1785861817695,
+    "notes:8": 1785862471786,
+    "notes:16": 1785863619274
+  },
+  "done": { "0.7": false },
+  "items": {},
+  "bookings": [],
+  "photos": {
+    "1.0": { "f": "data/photos/photos_1.0.jpg" },
+    "15.2": { "f": "data/photos/photos_15.2.jpg" }
+  },
+  "outfits": {},
+  "docs": [],
+  "todos": {},
+  "packing": {},
+  "spend": [],
+  "notes": { "8": "Sample note one", "16": "Sample note two" },
+  "cards": [],
+  "_updated": "2026-08-06T16:52:14.613Z",
+  "_by": "Test Device"
+}
 ```
 
-This file contains 16 photo references, two of Hershania's notes, and a
-`done:0.7` tombstone. It is the ground truth for the merge tests.
+Write this to `app/src/state/__fixtures__/state.json`.
+
+If you ever want to check the real file, copy it to
+`app/src/state/__fixtures__/state.real.json` — that name is gitignored — and
+delete it afterwards. Never rename it into the tracked fixture.
 
 - [ ] **Step 2: Write the failing test**
 
@@ -358,7 +402,7 @@ beforeEach(() => localStorage.clear());
 test('reads state written by the legacy app from the frozen key', () => {
   localStorage.setItem('larchcanyon', JSON.stringify(fixture));
   const s = loadState();
-  expect(s.notes['8']).toBe('Dont forget golden gate bridge overlook');
+  expect(s.notes['8']).toBe('Sample note one');
   expect(Object.keys(s.photos)).toHaveLength(16);
 });
 
@@ -519,12 +563,14 @@ const at = (s: TripState, sec: string, key: string, t: number) => {
   s._t = s._t || {}; s._t[`${sec}:${key}`] = t;
 };
 
-test('the real production state survives a merge against itself unchanged', () => {
+test('a production-shaped state survives a merge against itself unchanged', () => {
   const real = { ...emptyState(), ...(fixture as unknown as TripState) };
   const out = merge(real, real);
-  expect(Object.keys(out.photos)).toHaveLength(16);
-  expect(out.notes['8']).toBe('Dont forget golden gate bridge overlook');
-  expect(out.notes['16']).toBe('LAS VEGAS SIGN jgn lupa');
+  expect(Object.keys(out.photos)).toHaveLength(2);
+  expect(out.notes['8']).toBe('Sample note one');
+  expect(out.notes['16']).toBe('Sample note two');
+  // the tombstone from the fixture must survive the round trip
+  expect(out._t!['done:0.7']).toBe(1785861151217);
 });
 
 test('two devices editing different fields both keep their work', () => {
@@ -599,14 +645,20 @@ export function merge(local: TripState, remote: TripState): TripState {
 
   for (const sec of SYNCED) {
     const isArr = (BY_ID as readonly string[]).includes(sec);
-    const L = (local as Bag)[sec] ?? (isArr ? [] : {});
-    const R = (remote as Bag)[sec] ?? (isArr ? [] : {});
+    // `||`, NOT `??`. The original falls back on ANY falsy section, so a
+    // corrupt remote state.json holding `"bookings": 0` degrades to empty
+    // instead of throwing mid-sync. `??` only catches null/undefined and
+    // would abort the whole sync on a payload the original survives.
+    const L = (local as Bag)[sec] || (isArr ? [] : {});
+    const R = (remote as Bag)[sec] || (isArr ? [] : {});
     const lmap: Bag = isArr
-      ? Object.fromEntries((L as { id: string }[]).map(o => [o.id, o])) : (L as Bag);
+      ? Object.fromEntries(((L || []) as { id: string }[]).map(o => [o.id, o]))
+      : (L as Bag);
     const rmap: Bag = isArr
-      ? Object.fromEntries((R as { id: string }[]).map(o => [o.id, o])) : (R as Bag);
+      ? Object.fromEntries(((R || []) as { id: string }[]).map(o => [o.id, o]))
+      : (R as Bag);
 
-    const keys = new Set([...Object.keys(lmap), ...Object.keys(rmap)]);
+    const keys = new Set([...Object.keys(lmap || {}), ...Object.keys(rmap || {})]);
     const pre = sec + ':';
     for (const tm of [lt, rt])
       for (const p of Object.keys(tm))
@@ -682,7 +734,7 @@ import { GitHubRepo, encodeUtf8, decodeUtf8, ConflictError } from './github';
 const cfg = { owner:'o', repo:'r', branch:'main', token:'t', device:'d' };
 
 test('base64 helpers survive non-ASCII', () => {
-  const s = 'LAS VEGAS SIGN jgn lupa — café ☕';
+  const s = 'Sample note two — café ☕';
   expect(decodeUtf8(encodeUtf8(s))).toBe(s);
 });
 
@@ -1181,9 +1233,16 @@ worker only caches same-origin responses, so the type falls back to system-ui
 wherever there is no signal.
 
 **Files:**
-- Create: `app/public/fonts/*.woff2`
+- Create: `app/src/assets/fonts/*.woff2`
 - Create: `app/src/styles/tokens.css`, `app/src/styles/base.css`
 - Modify: `app/src/main.tsx` (import the stylesheets)
+
+> **Fonts go in `src/assets/`, not `public/`.** Anything in `public/` must be
+> referenced by an absolute URL containing the Vite `base`, which is
+> `/honeymoon/next/` today and becomes `/honeymoon/` at cutover — hardcoding it
+> would silently break every font at the moment of the switch. Referenced from
+> `src/` with a relative URL, Vite rewrites and fingerprints them, and the paths
+> stay correct at any base.
 
 **Interfaces:**
 - Consumes: nothing
@@ -1218,11 +1277,14 @@ Values are copied verbatim from the legacy app's `:root` block so the redesign
 starts from the identical palette.
 
 ```css
-@font-face{font-family:'Bricolage Grotesque';src:url('/honeymoon/next/fonts/bricolage-latin.woff2') format('woff2');
+/* Relative URLs, resolved from this file's own location. Vite rewrites and
+   fingerprints them, so they stay correct when `base` changes at cutover.
+   An absolute /honeymoon/next/… path would break at that moment. */
+@font-face{font-family:'Bricolage Grotesque';src:url('../assets/fonts/bricolage-latin.woff2') format('woff2');
   font-weight:400 800;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F}
-@font-face{font-family:'Inter';src:url('/honeymoon/next/fonts/inter-latin.woff2') format('woff2');
+@font-face{font-family:'Inter';src:url('../assets/fonts/inter-latin.woff2') format('woff2');
   font-weight:400 600;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F}
-@font-face{font-family:'JetBrains Mono';src:url('/honeymoon/next/fonts/jetbrains-latin.woff2') format('woff2');
+@font-face{font-family:'JetBrains Mono';src:url('../assets/fonts/jetbrains-latin.woff2') format('woff2');
   font-weight:400 600;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F}
 
 :root{
@@ -1318,14 +1380,14 @@ import { test, expect } from '@playwright/test';
 test('state written by the legacy app is readable and survives a reload', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('larchcanyon', JSON.stringify({
-      notes: { '8': 'Dont forget golden gate bridge overlook' },
+      notes: { '8': 'Sample note one' },
       _t: { 'notes:8': 1785862471786 },
     }));
   });
   await page.goto('./');
   const before = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('larchcanyon')!).notes['8']);
-  expect(before).toBe('Dont forget golden gate bridge overlook');
+  expect(before).toBe('Sample note one');
 
   await page.evaluate(() => localStorage.setItem('larchcanyon',
     JSON.stringify({ ...JSON.parse(localStorage.getItem('larchcanyon')!),
