@@ -13,8 +13,20 @@ export interface Booking {
 
 export interface Outfit { img?: PhotoRef; img2?: PhotoRef; pieces?: string; note?: string }
 export interface TripDoc { id: string; label: string; img?: PhotoRef }
-export interface Spend { id: string; date: string; cur: string; amount: number; card?: string; what?: string }
-export interface Card { id: string; bank: string; name: string; last4: string; limit?: number; markup?: number; fee?: number }
+export interface Spend {
+  id: string; date: string; cur: string;
+  amt: number;
+  card?: string; what?: string;
+}
+
+export interface Card {
+  id: string;
+  type: string;
+  nick: string;
+  bank?: string; network?: string; holder?: string; last4?: string;
+  markup?: number; fee?: number; cur?: string;
+  limit?: number;
+}
 
 export interface TripState {
   done: Record<string, boolean>;

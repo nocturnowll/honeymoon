@@ -82,6 +82,28 @@ test('sync is disabled by default, so the foundation build cannot touch live dat
   expect(spy).not.toHaveBeenCalled();
 });
 
+test('boot does not sync while sync is disabled', () => {
+  store.setConfig(cfg);
+  const spy = vi.spyOn(store, 'sync').mockResolvedValue(true);
+  online();
+  store.boot();
+  expect(spy).not.toHaveBeenCalled();
+});
+
+test('boot syncs once when enabled, configured, and online', () => {
+  store.setConfig(cfg); store.enableSync(true); online();
+  const spy = vi.spyOn(store, 'sync').mockResolvedValue(true);
+  store.boot(); store.boot();
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
+test('hydratePhotos does not fetch while sync is disabled', async () => {
+  const repo = {} as never;
+  const spy = vi.spyOn(globalThis, 'fetch');
+  await expect(store.hydratePhotos(repo)).resolves.toBe(false);
+  expect(spy).not.toHaveBeenCalled();
+});
+
 test('an explicit sync call is refused while sync is disabled', async () => {
   store.setConfig(cfg);
   const fetchSpy = vi.spyOn(globalThis, 'fetch');

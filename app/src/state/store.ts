@@ -1,9 +1,11 @@
-import { useSyncExternalStore } from 'react';
+import { useRef, useSyncExternalStore } from 'react';
 import { emptyState, type TripState } from './schema';
 import { loadState, saveState, loadSyncConfig, type SyncConfig } from './persist';
 import { merge, touch } from './sync/merge';
 import { GitHubRepo, ConflictError, encodeUtf8, decodeUtf8 } from './sync/github';
-import { uploadPending, sweepOrphans } from './sync/photos';
+import { collectRefs, resolveRef, uploadPending, sweepOrphans } from './sync/photos';
+import { idbGet, idbKeys } from './persist';
+import type { PhotoRef } from './schema';
 
 const STATE_PATH = 'data/state.json';
 const NUDGE_MS = 15_000;
@@ -32,6 +34,9 @@ class Store {
   private nudgeT: ReturnType<typeof setTimeout> | null = null;
   private auto: ReturnType<typeof setInterval> | null = null;
   private syncEnabled = SYNC_ENABLED;
+  private photoUrls = new Map<string, string>();
+  private photoRevision = 0;
+  private booted = false;
 
   getState() { return this.state; }
   status(): SyncStatus {
@@ -48,6 +53,10 @@ class Store {
     this.state = emptyState(); this.cfg = null; this.busy = false;
     this.error = null; this.last = null; this.saveFailed = false;
     this.queued = false;
+    this.booted = false;
+    this.photoRevision = 0;
+    this.photoUrls.forEach(url => URL.revokeObjectURL(url));
+    this.photoUrls.clear();
     this.listeners.clear();
     if (this.nudgeT) { clearTimeout(this.nudgeT); this.nudgeT = null; }
     if (this.auto) { clearInterval(this.auto); this.auto = null; }
@@ -64,6 +73,54 @@ class Store {
   }
 
   setConfig(c: SyncConfig | null) { this.cfg = c; if (c) this.startAuto(); }
+
+  /** Resolve remote photo refs after state merge. Sync remains the only caller. */
+  async hydrateLocalPhotos(): Promise<boolean> {
+    let arrived = false;
+    for (const id of await idbKeys()) {
+      if (this.photoUrls.has(id)) continue;
+      const blob = await idbGet(id);
+      if (blob) { this.photoUrls.set(id, URL.createObjectURL(blob)); arrived = true; }
+    }
+    if (arrived) { this.photoRevision++; this.emit(); }
+    return arrived;
+  }
+
+  getPhotoRevision() { return this.photoRevision; }
+
+  async hydratePhotos(repo?: GitHubRepo): Promise<boolean> {
+    if (!this.syncEnabled || !repo) return false;
+    let arrived = false;
+    for (const ref of collectRefs(this.state)) {
+      const before = this.photoUrls.has(ref.p);
+      const blob = await resolveRef(repo, ref);
+      if (blob && !before) {
+        const existing = this.photoUrls.get(ref.p);
+        if (existing) URL.revokeObjectURL(existing);
+        this.photoUrls.set(ref.p, URL.createObjectURL(blob));
+        arrived = true;
+      }
+    }
+    const live = new Set(collectRefs(this.state).map(ref => ref.p));
+    for (const [id, url] of this.photoUrls) {
+      if (!live.has(id)) { URL.revokeObjectURL(url); this.photoUrls.delete(id); }
+    }
+    if (arrived) { this.photoRevision++; this.emit(); }
+    return arrived;
+  }
+
+  photoUrl(ref: PhotoRef | string | null | undefined): string | null {
+    if (!ref) return null;
+    if (typeof ref === 'string') return ref.startsWith('data:') || ref.startsWith('http') ? ref : null;
+    return this.photoUrls.get(ref.p) ?? null;
+  }
+
+  /** Run the one-time boot sync immediately when sync is configured and enabled. */
+  boot() {
+    if (this.booted || !this.syncEnabled || !this.status().configured || !navigator.onLine) return;
+    this.booted = true;
+    void this.sync(true);
+  }
 
   nudge() {
     if (!this.status().configured) return;
@@ -117,6 +174,7 @@ class Store {
 
       this.state = merged;
       this.saveFailed = !saveState(this.state);
+      await this.hydratePhotos(repo);
       await sweepOrphans(this.state).catch(() => 0);
       this.last = new Date(); this.error = null;
       return true;
@@ -134,4 +192,22 @@ export const store = new Store();
 
 export function useTripState(): TripState {
   return useSyncExternalStore(store.subscribe, () => store.getState());
+}
+
+export function usePhotoRevision(): number {
+  return useSyncExternalStore(store.subscribe, () => store.getPhotoRevision(), () => 0);
+}
+
+export function useTripSelector<T>(selector: (state: TripState) => T): T {
+  const lastState = useRef<TripState | null>(null);
+  const selected = useRef<T | undefined>(undefined);
+  const getSnapshot = () => {
+    const state = store.getState();
+    if (state !== lastState.current) {
+      lastState.current = state;
+      selected.current = selector(state);
+    }
+    return selected.current as T;
+  };
+  return useSyncExternalStore(store.subscribe, getSnapshot, getSnapshot);
 }

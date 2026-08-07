@@ -7,6 +7,7 @@ import { store } from './state/store';
 
 if (import.meta.env.VITE_SYNC_ENABLED === '1') {
   store.startAuto();
+  store.boot();
   window.addEventListener('online', () => void store.sync(true));
   window.addEventListener('pagehide', () => store.flush());
   document.addEventListener('visibilitychange', () => {
@@ -16,5 +17,7 @@ if (import.meta.env.VITE_SYNC_ENABLED === '1') {
 } else {
   console.warn('[larch-canyon] Foundation build: sync is disabled. This page shares an origin with the live app and must not write to the data repo before cutover.');
 }
+
+void store.hydrateLocalPhotos();
 
 createRoot(document.getElementById('root')!).render(<App />);
