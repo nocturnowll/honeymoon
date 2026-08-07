@@ -63,22 +63,50 @@ Flip the sync gate at cutover without this and the photos stay blank on both pho
 
 The live app's equivalent migration shipped in **`da1cb18`** (`migrateFileRefs`, `index.html`) and is live at BUILD `2026.08.08-1`. **Read it and match the derivation exactly** — if the two disagree, the photos break on whichever app runs second. Ask on the bus rather than guessing.
 
-### 3. Show the outfit photo on the card · ✅ **done in `b6e3230`**
+### 3. Sheets are trapped in a stacking context · **Kenny hit this on a real phone 2026-08-08 — do it right after item 2**
+
+Kenny opened `Plan outfits · SEA` in `/next/` and the **date rail paints straight across the middle of the open sheet**. The header is also undimmed and the bottom nav sits on top of the sheet.
+
+Diagnosed, do not re-investigate. All three symptoms are one cause:
+
+`OutfitCard` — and therefore `<Sheet>` and its `.modal` — renders **inside** `<section className="place-header">` (`components/PlaceHeader.tsx`). `.place-header` is `position:sticky; z-index:10`, and a positioned element with a non-auto `z-index` **creates a stacking context**. So `.modal`'s `z-index:100` is not competing against the page — it is competing *inside* `.place-header`, and the whole sheet composites at **10**. Everything with a higher root-level z-index therefore wins:
+
+| Element | z-index | Result |
+|---|---|---|
+| `nav` | 50 | paints over the sheet |
+| `header` | 40 | never gets dimmed by the scrim |
+| `.date-rail` | 20 | paints across the sheet — what Kenny saw |
+| `.modal` | 100, but trapped at 10 | loses to all three |
+
+**Fix: render `Sheet` through a portal.** In `components/Sheet.tsx`, wrap the returned tree in `createPortal(..., document.body)` from `react-dom`. That puts every sheet at the top level of the document, where its `z-index:100` means what it says, and it makes the component immune to *any* ancestor stacking context anyone introduces later.
+
+Do NOT fix this by deleting or raising `z-index` on `.place-header`. That whack-a-moles one instance and leaves the trap in place for the next component someone nests.
+
+Right now `OutfitSheet` is the only sheet affected — `BookingSheet`, `CardSheet`, `SpendSheet` and `SettingsSheet` all render at route or app level, outside `.place-header`. The portal fixes the present bug and prevents the future ones.
+
+Notes:
+- Keep the existing focus management, `Escape` handler, swipe-to-dismiss and `onMouseDown` scrim-click-to-close exactly as they are — only the mount point changes.
+- Watch the `if (!open) return null` early return: it must stay above the portal call so nothing mounts when closed.
+- Tests: assert the sheet's DOM node is **not** a descendant of the component's parent element and IS a child of `document.body`; assert scrim-click still closes; assert `Escape` still closes.
+
+**Acceptance:** open the outfit sheet in `/next/` on a narrow viewport with the date rail visible, and confirm the rail is behind the scrim and the header is dimmed. Say in your report which viewport width you checked at.
+
+### 4. Show the outfit photo on the card · ✅ **done in `b6e3230`**
 
 Thumbnails render on the card and `usePhotoRevision()` is kept. See the two naming/efficiency notes under item 1.
 
-### 4. `.outfit-remove` tap target · ✅ **done in `b6e3230`**
+### 5. `.outfit-remove` tap target · ✅ **done in `b6e3230`**
 
 Now `min-width:44px;min-height:44px` with `padding:8px` and a negative margin so the hit area grows without the control gaining visual weight. Good solution.
 
-### 5. Budget side-by-side gate — **outstanding from Plan 2 Task 9 Step 6**
+### 6. Budget side-by-side gate — **outstanding from Plan 2 Task 9 Step 6**
 
 Your own log says the UI gate "remains unperformed". Budget carries the most logic and got a full redesign, which is the riskiest combination in this project.
 
 - Build a short reproducible checklist: enter the same 2 cards (one with markup, one cash) and 3 spends in **both** the live app and `/next/`, then compare: effective IDR rate per card, spend total per card, headroom %, the 85% warning, and which card is named cheapest.
 - Record the actual numbers from both, side by side, in your report. Do not mark it done on formula inspection — that was already done and is not the gate.
 
-### 6. Then Plan 3, Tasks 1–2 (map geometry + component)
+### 7. Then Plan 3, Tasks 1–2 (map geometry + component)
 
 `docs/superpowers/plans/2026-08-07-larch-canyon-map-bookings-cutover.md`. Do **not** start Task 8 (cutover) — that is Kenny's call, needs both phones together on wifi, and flips the sync gate.
 
