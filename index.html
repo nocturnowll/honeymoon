@@ -274,7 +274,7 @@ details.acc .ab{padding:0 13px 13px}
 <input type="file" id="filepick" accept="image/*" style="display:none" multiple>
 <script>
 /* ═══════════════════ TRIP DATA ═══════════════════ */
-const BUILD='2026.08.07-4';   // shown in Export → About, so you can tell what is live
+const BUILD='2026.08.08-1';   // shown in Export → About, so you can tell what is live
 const TRIP={start:'2026-09-14',end:'2026-10-06',pax:2,
  flights:[
   {code:'BR 238',from:'Jakarta (CGK)',to:'Taipei (TPE)',date:'2026-09-14',dep:'14:30',arr:'20:55',st:'booked'},
@@ -721,6 +721,32 @@ async function migratePhotos(){
  for(const d of(S.docs||[])){const r=await conv(d.img);if(r)d.img=r}
  if(moved){await Store.save();toast(`Moved ${moved} photo${moved===1?'':'s'} to the larger store`)}
  return moved;
+}
+
+/* one-off repair for refs from the pre-IndexedDB era: {f} with no p.
+   Those files still exist in the sync repo under their old name, and that
+   name IS the id the current scheme would have used, so p is derivable. */
+async function migrateFileRefs(){
+ let fixed=0;
+ const repair=ref=>{
+  if(!ref||typeof ref!=='object')return false;
+  if(typeof ref.f!=='string'||!ref.f.endsWith('.jpg'))return false;
+  if(ref.p)return false;
+  const base=ref.f.split('/').pop();
+  const id=base.slice(0,-4);
+  if(!id)return false;
+  ref.p=id;fixed++;return true;
+ };
+ for(const[k,v]of Object.entries(S.photos||{})){if(repair(v))touch('photos',k)}
+ for(const[k,o]of Object.entries(S.outfits||{})){
+  if(!o)continue;
+  let hit=false;
+  for(const f of['img','img2']){if(repair(o[f]))hit=true}
+  if(hit)touch('outfits',k);
+ }
+ for(const d of(S.docs||[])){if(repair(d.img))touch('docs',d.id)}
+ if(fixed){await Store.save();if(typeof Sync!=='undefined'&&Sync.nudge)Sync.nudge()}
+ return fixed;
 }
 
 /* ═══════════════════ STORAGE ═══════════════════
@@ -2132,7 +2158,7 @@ if('serviceWorker'in navigator&&location.protocol==='https:'){
   }
  }catch(e){console.warn('photo store unavailable',e)}
  buildNav();render();
- migratePhotos().then(n=>{if(n)render()}).catch(e=>console.warn('migration',e));
+ migratePhotos().then(a=>migrateFileRefs().then(b=>{if(a||b)render()})).catch(e=>console.warn('migration',e));
  const chip=document.getElementById('syncchip');
  if(chip)chip.onclick=()=>{if(Sync.on&&!Sync.busy)Sync.run();else syncSheet()};
  paintSync();
