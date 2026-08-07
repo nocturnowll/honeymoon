@@ -268,6 +268,16 @@ combination in this project.
 
 ## Cutover
 
+**Flip `VITE_SYNC_ENABLED=1` first.** The SPA is built with sync gated OFF by a
+build-time flag, and this is not optional bookkeeping — localStorage is scoped
+per **origin**, not per path. `/honeymoon/next/` is the same origin as
+`/honeymoon/`, so the in-progress build can read the real PAT and the real photo
+blobs the live app wrote. Without the gate, either phone opening the development
+URL once would run a real two-way sync against the private data repo and point
+`sweepOrphans` at real photos — from a build with no user interface. The flag is
+read in `app/src/state/store.ts`; when unset, Vite constant-folds the branch and
+the lifecycle wiring is eliminated from the bundle entirely.
+
 1. A frozen copy of the current app stays deployed at `/legacy/` — an instant
    fallback URL needing no deploy to reach
 2. Both phones on wifi, force-quit, reopen
