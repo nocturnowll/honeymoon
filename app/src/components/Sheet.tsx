@@ -1,20 +1,23 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title?: string; children: ReactNode }) {
   const panel = useRef<HTMLDivElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   const [offset, setOffset] = useState(0);
   const dragStart = useRef<number | null>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
     returnFocus.current = document.activeElement as HTMLElement;
     panel.current?.focus();
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') closeRef.current(); };
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('keydown', onKey); returnFocus.current?.focus(); };
-  }, [open, onClose]);
+  }, [open]);
   if (!open) return null;
-  return <div className="modal on" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+  return createPortal(<div className="modal on" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) { e.preventDefault(); closeRef.current(); } }}>
     <div ref={panel} className="sheet" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}
       style={{ transform: `translateY(${offset}px)` }}
       onTouchStart={e => { dragStart.current = e.touches[0]?.clientY ?? null; }}
@@ -25,5 +28,5 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
       {title && <h3>{title}</h3>}
       {children}
     </div>
-  </div>;
+  </div>, document.body);
 }

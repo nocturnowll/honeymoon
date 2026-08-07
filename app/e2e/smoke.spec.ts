@@ -56,3 +56,39 @@ test('IndexedDB helpers put/get/keys/del a blob through the app\'s own code', as
   const readAfterDel = await page.evaluate(() => window.__idbTest.get('e2e-test-key'));
   expect(readAfterDel).toBeNull();
 });
+
+test('outfit sheets portal to body and close from Escape or the scrim', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('./#/itinerary');
+
+  const planButton = page.getByRole('button', { name: 'Plan outfit' }).first();
+  await planButton.focus();
+  await planButton.click();
+  const modal = page.locator('.modal.on');
+  await expect(modal).toBeVisible();
+  expect(await modal.evaluate(node => node.parentElement === document.body)).toBe(true);
+  const overlayHit = await page.evaluate(() => {
+    const modal = document.querySelector('.modal.on')!;
+    const points = [
+      document.querySelector('header')!,
+      document.querySelector('.date-rail')!,
+      document.querySelector('nav')!,
+    ].map(element => {
+      const box = element.getBoundingClientRect();
+      const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      return hit === modal || hit?.closest('.modal') === modal;
+    });
+    return points;
+  });
+  expect(overlayHit).toEqual([true, true, true]);
+  await page.keyboard.press('Escape');
+  await expect(modal).toHaveCount(0);
+  await expect(planButton).toBeFocused();
+
+  await planButton.focus();
+  await planButton.click();
+  await expect(modal).toBeVisible();
+  await modal.click({ position: { x: 3, y: 3 } });
+  await expect(modal).toHaveCount(0);
+  await expect(planButton).toBeFocused();
+});
