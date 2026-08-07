@@ -1181,9 +1181,16 @@ worker only caches same-origin responses, so the type falls back to system-ui
 wherever there is no signal.
 
 **Files:**
-- Create: `app/public/fonts/*.woff2`
+- Create: `app/src/assets/fonts/*.woff2`
 - Create: `app/src/styles/tokens.css`, `app/src/styles/base.css`
 - Modify: `app/src/main.tsx` (import the stylesheets)
+
+> **Fonts go in `src/assets/`, not `public/`.** Anything in `public/` must be
+> referenced by an absolute URL containing the Vite `base`, which is
+> `/honeymoon/next/` today and becomes `/honeymoon/` at cutover — hardcoding it
+> would silently break every font at the moment of the switch. Referenced from
+> `src/` with a relative URL, Vite rewrites and fingerprints them, and the paths
+> stay correct at any base.
 
 **Interfaces:**
 - Consumes: nothing
