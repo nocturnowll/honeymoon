@@ -39,7 +39,7 @@ Original brief, kept for reference:
 
 My stated acceptance ("a materially smaller Blob, proven by assertion") was not achievable: jsdom has no canvas, so `toBlob` must be mocked and the output size is whatever the mock returns. The dimension and quality assertions are the real proof, and they are there. My criterion was wrong, not your tests.
 
-### 2. Legacy photo refs — the SPA cannot see them either · **new, added 2026-08-08, blocks cutover**
+### 2. Legacy photo refs — the SPA cannot see them either · ✅ **done in `ee44407`, reviewed — one follow-up as item 4**
 
 Diagnosed by CC on 2026-08-08 against the real sync repo. Do not re-investigate; implement.
 
@@ -63,7 +63,7 @@ Flip the sync gate at cutover without this and the photos stay blank on both pho
 
 The live app's equivalent migration shipped in **`da1cb18`** (`migrateFileRefs`, `index.html`) and is live at BUILD `2026.08.08-1`. **Read it and match the derivation exactly** — if the two disagree, the photos break on whichever app runs second. Ask on the bus rather than guessing.
 
-### 3. Sheets are trapped in a stacking context · **Kenny hit this on a real phone 2026-08-08 — do it right after item 2**
+### 3. Sheets are trapped in a stacking context · ✅ **done in `7d2ed1e`, reviewed clean**
 
 Kenny opened `Plan outfits · SEA` in `/next/` and the **date rail paints straight across the middle of the open sheet**. The header is also undimmed and the bottom nav sits on top of the sheet.
 
@@ -91,22 +91,40 @@ Notes:
 
 **Acceptance:** open the outfit sheet in `/next/` on a narrow viewport with the date rail visible, and confirm the rail is behind the scrim and the header is dimmed. Say in your report which viewport width you checked at.
 
-### 4. Show the outfit photo on the card · ✅ **done in `b6e3230`**
+### 4. `migrateFileRefs(remote)` stamps the remote as freshest · **do this next — it is in the merge path**
+
+From my review of `ee44407`. The migration itself is right — derivation matches the live app's `da1cb18` exactly, it is idempotent, it covers all four ref homes, and the tests are real. One defect.
+
+`store.ts` calls `migrateFileRefs(remote)` on the freshly-fetched remote snapshot. `repair()` stamps `state._t[section:key] = Date.now()`. So every key it repairs on the **remote** copy is marked as having been edited *now*.
+
+The merge tie-break is `a >= b ? local : remote` (`sync/merge.ts:44`). Stamping the remote at `Date.now()` makes `b` larger than any real local timestamp, so **the remote wins that key unconditionally**.
+
+Concrete loss: you replace an outfit photo on your phone and it has not synced yet. Sync runs. The remote's copy of that outfit is still legacy-shaped. The migration stamps it at now, the merge prefers it, your new ref is dropped from state, the blob is orphaned, and `sweepOrphans` reclaims it on the next pass. The photo is gone.
+
+The stamp is correct for the **local** state — that is what propagates the repair to the other phone. It is wrong for the remote, because repairing a ref's *shape* is not an edit and must not win a merge.
+
+- Give `migrateFileRefs` a second parameter, e.g. `migrateFileRefs(state, { stamp = true })`, and call the remote path with `{ stamp: false }`. Repair `p` in place either way; only skip the `_t` write.
+- Test it directly: a local state with a newer `_t` for `outfits:sea` and a legacy-shaped remote for the same key must merge to the **local** ref. That test fails today.
+- Also assert the remote path still repairs `p` — the point is to skip the stamp, not the repair.
+
+Not urgent in the sense that the live app has already repaired all 16 refs, so the remote is currently clean. It matters because it is latent in the merge path and the window reopens at cutover.
+
+### 5. Show the outfit photo on the card · ✅ **done in `b6e3230`**
 
 Thumbnails render on the card and `usePhotoRevision()` is kept. See the two naming/efficiency notes under item 1.
 
-### 5. `.outfit-remove` tap target · ✅ **done in `b6e3230`**
+### 6. `.outfit-remove` tap target · ✅ **done in `b6e3230`**
 
 Now `min-width:44px;min-height:44px` with `padding:8px` and a negative margin so the hit area grows without the control gaining visual weight. Good solution.
 
-### 6. Budget side-by-side gate — **outstanding from Plan 2 Task 9 Step 6**
+### 7. Budget side-by-side gate — **outstanding from Plan 2 Task 9 Step 6**
 
 Your own log says the UI gate "remains unperformed". Budget carries the most logic and got a full redesign, which is the riskiest combination in this project.
 
 - Build a short reproducible checklist: enter the same 2 cards (one with markup, one cash) and 3 spends in **both** the live app and `/next/`, then compare: effective IDR rate per card, spend total per card, headroom %, the 85% warning, and which card is named cheapest.
 - Record the actual numbers from both, side by side, in your report. Do not mark it done on formula inspection — that was already done and is not the gate.
 
-### 7. Then Plan 3, Tasks 1–2 (map geometry + component)
+### 8. Then Plan 3, Tasks 1–2 (map geometry + component)
 
 `docs/superpowers/plans/2026-08-07-larch-canyon-map-bookings-cutover.md`. Do **not** start Task 8 (cutover) — that is Kenny's call, needs both phones together on wifi, and flips the sync gate.
 
