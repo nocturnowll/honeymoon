@@ -1,7 +1,7 @@
 /* Offline cache.
    Network-first for the app shell so a new deploy is picked up immediately;
    cache-first only for assets that never change. Bump V on every release. */
-const V='larch-canyon-2026.08.07-4';
+const V='larch-canyon-2026.08.08-1';
 const SHELL=['./','./index.html'];
 const ASSETS=['./manifest.json','./assets/icon.png','./assets/maps/overview.png',
   './assets/maps/canada.png','./assets/maps/sierra.png','./assets/maps/utah.png',
