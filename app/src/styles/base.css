@@ -1,0 +1,14 @@
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{margin:0;padding:0;overscroll-behavior:none}
+body{background:var(--paper);color:var(--ink);font-family:var(--b);
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--d);margin:0;letter-spacing:-.015em;line-height:1.1}
+button{cursor:pointer;border:none;background:none;font:inherit;color:inherit}
+/* iOS zooms the page when focusing an input under 16px */
+input,select,textarea{font-family:inherit;font-size:16px;color:inherit}
+/* chrome only — never on content the user may want to copy */
+header,nav{user-select:none;-webkit-user-select:none}
+/* every interactive control clears the platform minimum */
+button,a[role=button],input[type=checkbox]{min-height:var(--tap);min-width:var(--tap)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
