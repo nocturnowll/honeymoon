@@ -19,16 +19,25 @@
 
 ## Queue — work top to bottom
 
-### 1. Image resize pipeline · **do this first**
+### 1. Image resize pipeline · ✅ **done in `b6e3230`, reviewed + pushed 2026-08-08**
 
-**Why it's first:** `OutfitSheet` puts the raw `File` into IndexedDB. There is no resize anywhere in `app/src`. A current iPhone photo is 4032px / 3–6MB, so 12 destinations × 2 looks is ~100MB on the device instead of ~10MB. Invisible while sync is off; at cutover every one of those uploads as base64 into the data repo, over hotel wifi, permanently. The cost grows with every photo added before it lands.
+Reviewed clean — the port is faithful and the null-context guard you added is a genuine improvement over the original. Note my line reference below was wrong: `processImage` is at **`index.html:903-920`**, not 864-885. You transcribed it correctly anyway.
 
-- Create `app/src/lib/image.ts`. Port `processImage` from **`index.html:864-885`** — canvas resize to **1800px** on the long edge, re-encode JPEG at **0.82**, `imageSmoothingQuality: 'high'`. Keep the rejection of non-images and the error messages.
-- Wire it into `OutfitSheet` so `store.addLocalPhoto` receives the processed Blob, never the raw `File`.
-- Make it the single entry point for **every** future photo input — day photos, documents, booking attachments in Plan 3.
-- Tests: a wide image scales to 1800 on its long edge; a small image is not upscaled; a non-image rejects; output MIME is `image/jpeg`. Use a canvas-generated Blob, not a fixture file.
+Three Minor findings from that review, all small — fold them into your next commit:
 
-**Acceptance:** a 4000×3000 input yields ≤1800px and a materially smaller Blob, proven by assertion, not by eye.
+- **`OutfitSheet` swallows `processImage`'s error message.** The catch sets `'That photo could not be saved. Try a smaller image.'` for every failure, but `processImage` rejects with specific, user-facing text — pick a PDF and you get told to try a smaller image, which is wrong advice. The legacy app surfaces `err.message` directly (`index.html:928`). Do the same: use the thrown message when there is one, keep your generic string as the fallback for everything else.
+- **`PhotoThumbnail` names a prop `ref`.** It works under React 19's ref-as-prop, but it is a landmine for anyone who later wraps the component. Rename to `photo`.
+- **`photoUrl` is called twice per thumbnail** — once building `thumbnails`, once inside `PhotoThumbnail`. Pass the resolved `src` down instead of re-resolving.
+
+Original brief, kept for reference:
+
+> **Why it's first:** `OutfitSheet` puts the raw `File` into IndexedDB. There is no resize anywhere in `app/src`. A current iPhone photo is 4032px / 3–6MB, so 12 destinations × 2 looks is ~100MB on the device instead of ~10MB. Invisible while sync is off; at cutover every one of those uploads as base64 into the data repo, over hotel wifi, permanently. The cost grows with every photo added before it lands.
+
+> - Create `app/src/lib/image.ts`. Port `processImage` (canvas resize to **1800px** long edge, JPEG **0.82**, `imageSmoothingQuality: 'high'`), keeping the non-image rejection and the error messages.
+> - Wire it into `OutfitSheet` so `store.addLocalPhoto` receives the processed Blob, never the raw `File`.
+> - Make it the single entry point for **every** future photo input — day photos, documents, booking attachments in Plan 3.
+
+My stated acceptance ("a materially smaller Blob, proven by assertion") was not achievable: jsdom has no canvas, so `toBlob` must be mocked and the output size is whatever the mock returns. The dimension and quality assertions are the real proof, and they are there. My criterion was wrong, not your tests.
 
 ### 2. Legacy photo refs — the SPA cannot see them either · **new, added 2026-08-08, blocks cutover**
 
@@ -52,18 +61,15 @@ Flip the sync gate at cutover without this and the photos stay blank on both pho
 - Must be idempotent: a second run repairs zero.
 - Tests: each ref home; an already-correct ref untouched; a non-`.jpg` `f` untouched; `null`/`undefined` no crash; second run repairs 0; the exact `_t` keys stamped.
 
-CC is landing the equivalent migration in the live `index.html` today. **Match its derivation exactly** — read that commit before you start; if the two disagree, the photos break on whichever app runs second. Ask on the bus rather than guessing.
+The live app's equivalent migration shipped in **`da1cb18`** (`migrateFileRefs`, `index.html`) and is live at BUILD `2026.08.08-1`. **Read it and match the derivation exactly** — if the two disagree, the photos break on whichever app runs second. Ask on the bus rather than guessing.
 
-### 3. Show the outfit photo on the card
+### 3. Show the outfit photo on the card · ✅ **done in `b6e3230`**
 
-`OutfitCard` currently says "1 outfit photo saved" and hides the photo behind the sheet. This is the wife-facing feature and it is a visual one — she should see the look on the itinerary without tapping.
+Thumbnails render on the card and `usePhotoRevision()` is kept. See the two naming/efficiency notes under item 1.
 
-- Render a thumbnail (or two) on the card using `store.photoUrl(ref)`.
-- Keep `usePhotoRevision()` so it repaints when blobs change.
+### 4. `.outfit-remove` tap target · ✅ **done in `b6e3230`**
 
-### 4. `.outfit-remove` opts out of the 44px tap target
-
-`app/src/styles/base.css` sets `min-width:0;min-height:0` on it. It is a destructive control below the platform minimum. Give it a real hit area without making it visually heavy — padding, not a button block.
+Now `min-width:44px;min-height:44px` with `padding:8px` and a negative margin so the hit area grows without the control gaining visual weight. Good solution.
 
 ### 5. Budget side-by-side gate — **outstanding from Plan 2 Task 9 Step 6**
 
