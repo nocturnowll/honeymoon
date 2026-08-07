@@ -80,9 +80,9 @@ export function OutfitSheet({ base, dateSpan, existing, onClose }: OutfitSheetPr
         clearAlternate && oldAlternate ? oldAlternate : undefined,
       ].filter((ref, index, refs): ref is PhotoRef => !!ref && refs.findIndex(item => item?.p === ref.p) === index);
       void Promise.all(replaced.map(ref => store.removeLocalPhoto(ref))).catch(() => undefined);
-    } catch {
+    } catch (cause) {
       await Promise.allSettled(created.map(ref => store.removeLocalPhoto(ref)));
-      setError('That photo could not be saved. Try a smaller image.');
+      setError(cause instanceof Error ? cause.message : 'That photo could not be saved. Try a smaller image.');
     } finally {
       setSaving(false);
     }

@@ -1,4 +1,4 @@
-import { expect, test, beforeEach } from 'vitest';
+import { expect, test, beforeEach, vi } from 'vitest';
 import { loadState, saveState, loadSyncConfig, saveSyncConfig } from './persist';
 import { emptyState } from './schema';
 import fixture from './__fixtures__/state.json';
@@ -10,6 +10,22 @@ test('reads state written by the legacy app from the frozen key', () => {
   const s = loadState();
   expect(s.notes['8']).toBe('Sample note one');
   expect(Object.keys(s.photos)).toHaveLength(2);
+});
+
+test('repairs and persists legacy file-only photo refs during state load', () => {
+  localStorage.setItem('larchcanyon', JSON.stringify(fixture));
+  const s = loadState();
+  expect(s.photos['1.0']).toEqual({ p: 'photos_1.0', f: 'data/photos/photos_1.0.jpg' });
+  expect(s._t?.['photos:1.0']).toBeGreaterThan(0);
+  expect(JSON.parse(localStorage.getItem('larchcanyon')!).photos['15.2'].p).toBe('photos_15.2');
+  expect(loadState()).toEqual(s);
+});
+
+test('a migration persistence failure keeps the repaired in-memory state', () => {
+  localStorage.setItem('larchcanyon', JSON.stringify(fixture));
+  const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('QuotaExceededError'); });
+  expect(loadState().photos['1.0']).toEqual({ p: 'photos_1.0', f: 'data/photos/photos_1.0.jpg' });
+  spy.mockRestore();
 });
 
 test('missing sections are filled without clobbering present ones', () => {

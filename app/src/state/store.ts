@@ -1,5 +1,6 @@
 import { useRef, useSyncExternalStore } from 'react';
 import { emptyState, type TripState } from './schema';
+import { migrateFileRefs } from './migrate';
 import { loadState, saveState, loadSyncConfig, type SyncConfig } from './persist';
 import { merge, touch } from './sync/merge';
 import { GitHubRepo, ConflictError, encodeUtf8, decodeUtf8 } from './sync/github';
@@ -175,7 +176,12 @@ class Store {
     try {
       const file = await repo.getFile(STATE_PATH);
       let remote: TripState = emptyState();
-      if (file?.content) { try { remote = JSON.parse(decodeUtf8(file.content)); } catch { /* corrupt remote */ } }
+      if (file?.content) {
+        try {
+          remote = JSON.parse(decodeUtf8(file.content));
+          migrateFileRefs(remote);
+        } catch { /* corrupt remote */ }
+      }
 
       const merged = merge(this.state, remote);
       await uploadPending(repo, merged);

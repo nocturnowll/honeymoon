@@ -1,4 +1,5 @@
 import { emptyState, type TripState } from './schema';
+import { migrateFileRefs } from './migrate';
 
 const STATE_KEY = 'larchcanyon';
 const CFG_KEY = 'larchcanyon.gh';
@@ -11,7 +12,12 @@ export function loadState(): TripState {
   try {
     const raw = localStorage.getItem(STATE_KEY);
     if (!raw) return emptyState();
-    return { ...emptyState(), ...JSON.parse(raw) };
+    const state = { ...emptyState(), ...JSON.parse(raw) } as TripState;
+    if (migrateFileRefs(state) > 0) {
+      try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); }
+      catch { /* keep the repaired in-memory state; the next write can retry */ }
+    }
+    return state;
   } catch { return emptyState(); }
 }
 

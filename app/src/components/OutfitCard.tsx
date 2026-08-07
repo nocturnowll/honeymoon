@@ -3,9 +3,9 @@ import type { Outfit, PhotoRef } from '../state/schema';
 import { store, usePhotoRevision } from '../state/store';
 import { OutfitSheet } from './OutfitSheet';
 
-function PhotoThumbnail({ ref, label }: { ref: PhotoRef | undefined; label: string }) {
-  const src = store.photoUrl(ref);
-  return src ? <img className="outfit-thumbnail" src={src} alt={label} /> : null;
+function PhotoThumbnail({ photo, src, label }: { photo: PhotoRef | undefined; src: string; label: string }) {
+  if (!photo) return null;
+  return <img className="outfit-thumbnail" src={src} alt={label} />;
 }
 
 export function OutfitCard({ outfit, base, dateSpan }: { outfit: Outfit | undefined; base: string; dateSpan: string }) {
@@ -13,15 +13,15 @@ export function OutfitCard({ outfit, base, dateSpan }: { outfit: Outfit | undefi
   usePhotoRevision();
   const hasPhoto = !!(outfit?.img || outfit?.img2);
   const thumbnails = [
-    { ref: outfit?.img, label: 'Main outfit' },
-    { ref: outfit?.img2, label: 'Alternate outfit' },
-  ].map(photo => ({ ...photo, src: store.photoUrl(photo.ref) })).filter(photo => photo.src);
+    { photo: outfit?.img, label: 'Main outfit' },
+    { photo: outfit?.img2, label: 'Alternate outfit' },
+  ].map(item => ({ ...item, src: store.photoUrl(item.photo) })).filter((item): item is typeof item & { src: string } => !!item.src);
   return <>
     <div className="outfit-card card pad">
       <div className="eyebrow">Outfit · {base}</div>
       <div className="row"><strong>{outfit?.pieces || 'No outfit plan yet'}</strong><span className="tag">{dateSpan}</span></div>
       {thumbnails.length > 0 && <div className="outfit-thumbnails" aria-label="Saved outfit photos">
-        {thumbnails.map(photo => <PhotoThumbnail key={photo.label} ref={photo.ref} label={photo.label} />)}
+        {thumbnails.map(photo => <PhotoThumbnail key={photo.label} photo={photo.photo} src={photo.src} label={photo.label} />)}
       </div>}
       {outfit?.note && <p className="hint">{outfit.note}</p>}
       {hasPhoto && <p className="hint">{outfit.img2 ? '2 outfit photos saved' : '1 outfit photo saved'}</p>}
