@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Outfit, PhotoRef } from '../state/schema';
 import { store } from '../state/store';
 import { Sheet } from './Sheet';
+import { processImage } from '../lib/image';
 
 interface OutfitSheetProps {
   base: string;
@@ -54,9 +55,13 @@ export function OutfitSheet({ base, dateSpan, existing, onClose }: OutfitSheetPr
     try {
       const oldMain = existing?.img;
       const oldAlternate = existing?.img2;
-      const img = main ? await store.addLocalPhoto(main) : clearMain ? undefined : oldMain;
+      const img = main
+        ? await store.addLocalPhoto(await processImage(main))
+        : clearMain ? undefined : oldMain;
       if (main && img) created.push(img);
-      const img2 = alternate ? await store.addLocalPhoto(alternate) : clearAlternate ? undefined : oldAlternate;
+      const img2 = alternate
+        ? await store.addLocalPhoto(await processImage(alternate))
+        : clearAlternate ? undefined : oldAlternate;
       if (alternate && img2) created.push(img2);
       store.mutate('outfits', base, state => {
         state.outfits[base] = {
