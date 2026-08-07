@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-        with: { bun-version: latest }
+        with: { bun-version: 1.3.13 }
       - name: Build SPA
         run: cd app && bun install --frozen-lockfile && bun run vite build
       - name: Assemble site

@@ -22,9 +22,10 @@ export function collectRefs(s: TripState): PhotoRef[] {
 }
 
 async function blobToBase64(b: Blob): Promise<string> {
-  return new Promise(res => {
+  return new Promise((res, rej) => {
     const r = new FileReader();
     r.onload = () => res(String(r.result).split(',')[1]);
+    r.onerror = () => rej(r.error ?? new Error('FileReader failed'));
     r.readAsDataURL(b);
   });
 }
@@ -35,15 +36,17 @@ export async function uploadPending(repo: GitHubRepo, s: TripState): Promise<num
   let n = 0;
   for (const ref of collectRefs(s)) {
     if (ref.f) continue;
-    const blob = await idbGet(ref.p);
-    if (!blob) continue;
-    const ext = blob.type === 'application/pdf' ? 'pdf' : 'jpg';
-    const path = `${PHOTO_DIR}/${ref.p}.${ext}`;
-    const b64 = await blobToBase64(blob);
-    let sha: string | null = null;
-    try { sha = (await repo.getFile(path))?.sha ?? null; } catch { /* new file */ }
-    try { await repo.putFile(path, b64, sha, `photo ${ref.p}`); ref.f = path; n++; }
-    catch { /* stays local, retried next sync */ }
+    try {
+      const blob = await idbGet(ref.p);
+      if (!blob) continue;
+      const ext = blob.type === 'application/pdf' ? 'pdf' : 'jpg';
+      const path = `${PHOTO_DIR}/${ref.p}.${ext}`;
+      const b64 = await blobToBase64(blob);
+      let sha: string | null = null;
+      try { sha = (await repo.getFile(path))?.sha ?? null; } catch { /* new file */ }
+      await repo.putFile(path, b64, sha, `photo ${ref.p}`);
+      ref.f = path; n++;
+    } catch { /* stays local, retried next sync */ }
   }
   return n;
 }

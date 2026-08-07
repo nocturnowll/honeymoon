@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('state written by the legacy app is readable and survives a reload', async ({ page }) => {
+test('booting the SPA does not clobber existing legacy state, and edits survive a reload', async ({ page }) => {
   // addInitScript re-runs on every navigation, including page.reload() below —
   // guard the seed so the reload doesn't stomp the edit made mid-test back to
   // the original value.

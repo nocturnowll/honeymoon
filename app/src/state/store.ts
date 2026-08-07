@@ -9,6 +9,14 @@ const STATE_PATH = 'data/state.json';
 const NUDGE_MS = 15_000;
 const AUTO_MS = 5 * 60_000;
 
+/** Plan 1 is a foundation build with no UI, served at /honeymoon/next/.
+ *  localStorage is per-ORIGIN, not per-path, so this build can see the real
+ *  PAT and the real photo blobs the live app wrote at /honeymoon/. Until the
+ *  Plan 3 cutover it must never sync, or merely opening the page would write
+ *  to the live data repo and sweep real blobs. Flipped on by setting
+ *  VITE_SYNC_ENABLED=1 at build time. */
+const SYNC_ENABLED = import.meta.env.VITE_SYNC_ENABLED === '1';
+
 export interface SyncStatus {
   configured: boolean; busy: boolean; error: string | null;
   last: Date | null; saveFailed: boolean;
@@ -23,12 +31,15 @@ class Store {
   private saveFailed = false;
   private nudgeT: ReturnType<typeof setTimeout> | null = null;
   private auto: ReturnType<typeof setInterval> | null = null;
+  private syncEnabled = SYNC_ENABLED;
 
   getState() { return this.state; }
   status(): SyncStatus {
-    return { configured: !!(this.cfg?.token && this.cfg.owner && this.cfg.repo),
+    return { configured: this.syncEnabled && !!(this.cfg?.token && this.cfg.owner && this.cfg.repo),
       busy: this.busy, error: this.error, last: this.last, saveFailed: this.saveFailed };
   }
+  /** Test seam, and the Plan 3 cutover switch. */
+  enableSync(on: boolean) { this.syncEnabled = on; }
   subscribe = (fn: () => void) => { this.listeners.add(fn); return () => { this.listeners.delete(fn); }; };
   private emit() { this.state = { ...this.state }; this.listeners.forEach(f => f()); }
 
@@ -40,6 +51,7 @@ class Store {
     this.listeners.clear();
     if (this.nudgeT) { clearTimeout(this.nudgeT); this.nudgeT = null; }
     if (this.auto) { clearInterval(this.auto); this.auto = null; }
+    this.syncEnabled = SYNC_ENABLED;
   }
 
   /** The only way state changes. Stamps `_t`, persists, schedules a push. */
@@ -77,6 +89,7 @@ class Store {
   }
 
   async sync(silent = false, depth = 0): Promise<boolean> {
+    if (!this.syncEnabled) return false;
     if (!this.status().configured || !this.cfg) return false;
     if (this.busy) { this.queued = true; return false; }
     if (!navigator.onLine) { this.error = 'offline'; this.emit(); return false; }

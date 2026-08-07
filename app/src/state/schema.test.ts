@@ -11,7 +11,7 @@ test('BY_ID sections match the legacy app exactly', () => {
   expect(BY_ID).toEqual(['bookings','docs','spend','cards']);
 });
 
-test('every key in the real production state is known to the schema', () => {
+test('every key in a production-shaped state is known to the schema', () => {
   const known = new Set([...SYNCED, '_t', '_updated', '_by', '_note', 'v']);
   for (const k of Object.keys(fixture)) expect(known.has(k)).toBe(true);
 });

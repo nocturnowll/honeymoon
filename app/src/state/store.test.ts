@@ -33,7 +33,7 @@ test('a failed write is reported in status rather than swallowed', () => {
 });
 
 test('an edit schedules a debounced push rather than pushing immediately', () => {
-  store.setConfig(cfg); online();
+  store.setConfig(cfg); store.enableSync(true); online();
   const spy = vi.spyOn(store, 'sync').mockResolvedValue(true);
   store.mutate('notes', '5', s => { s.notes['5'] = 'x'; });
   expect(spy).not.toHaveBeenCalled();
@@ -42,7 +42,7 @@ test('an edit schedules a debounced push rather than pushing immediately', () =>
 });
 
 test('a burst of edits coalesces into a single push', () => {
-  store.setConfig(cfg); online();
+  store.setConfig(cfg); store.enableSync(true); online();
   const spy = vi.spyOn(store, 'sync').mockResolvedValue(true);
   for (let i = 0; i < 5; i++) {
     store.mutate('notes', String(i), s => { s.notes[String(i)] = 'x'; });
@@ -53,7 +53,7 @@ test('a burst of edits coalesces into a single push', () => {
 });
 
 test('flush sends a pending push immediately, without waiting for the timer', () => {
-  store.setConfig(cfg); online();
+  store.setConfig(cfg); store.enableSync(true); online();
   const spy = vi.spyOn(store, 'sync').mockResolvedValue(true);
   store.mutate('notes', '5', s => { s.notes['5'] = 'x'; });
   store.flush();
@@ -61,7 +61,7 @@ test('flush sends a pending push immediately, without waiting for the timer', ()
 });
 
 test('flush with nothing pending does nothing', () => {
-  store.setConfig(cfg); online();
+  store.setConfig(cfg); store.enableSync(true); online();
   const spy = vi.spyOn(store, 'sync').mockResolvedValue(true);
   store.flush();
   expect(spy).not.toHaveBeenCalled();
@@ -71,4 +71,20 @@ test('startAuto registers exactly one interval however often it is called', () =
   const spy = vi.spyOn(globalThis, 'setInterval');
   store.startAuto(); store.startAuto(); store.startAuto();
   expect(spy).toHaveBeenCalledTimes(1);
+});
+
+test('sync is disabled by default, so the foundation build cannot touch live data', async () => {
+  store.setConfig(cfg);                    // real-looking config, but no enableSync
+  const spy = vi.spyOn(store, 'sync');
+  expect(store.status().configured).toBe(false);
+  store.mutate('notes', '5', s => { s.notes['5'] = 'x'; });
+  vi.advanceTimersByTime(60000);
+  expect(spy).not.toHaveBeenCalled();
+});
+
+test('an explicit sync call is refused while sync is disabled', async () => {
+  store.setConfig(cfg);
+  const fetchSpy = vi.spyOn(globalThis, 'fetch');
+  await expect(store.sync(true)).resolves.toBe(false);
+  expect(fetchSpy).not.toHaveBeenCalled();
 });
