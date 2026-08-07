@@ -168,7 +168,9 @@ Checkout day is deliberately excluded — you do not sleep there that night.
 - [ ] **Step 3:** Runtime caching: never cache `api.github.com`, `open-meteo`, or `er-api.com`. Ported from `index.html`'s `sw.js:25-26`.
 - [ ] **Step 4: Confirm the idb-harness is absent from the precache manifest.** It is gated out of production builds, but this is the mechanism that would have made an accidental inclusion permanent on every device.
 - [ ] **Step 5:** Update prompt — "New version ready", skip waiting, reload. Ported from `index.html:2129-2145`.
-- [ ] **Step 6:** Commit.
+- [ ] **Step 6: Do NOT enable `navigateFallback` — and if you do, denylist `/legacy/`.** This app is **hash-routed** (`lib/router.ts` reads `location.hash`), so every route is a request for the same document and a navigation fallback buys nothing. Enabling one is actively dangerous: a service worker's scope is a *prefix*, so the SPA's worker at `/honeymoon/` also controls **`/honeymoon/legacy/`**, and a navigation fallback would answer that request with the SPA's own `index.html`. The legacy app would become unreachable *through the very mechanism the rollback plan depends on* — and because it is a service worker, it would keep doing so after a revert until the worker updates. If some later need makes a fallback unavoidable, it must carry `navigateFallbackDenylist: [/^\/honeymoon\/legacy\//]`.
+- [ ] **Step 7: Prove it.** After building, load `/honeymoon/legacy/` in a browser with the new worker installed and confirm the **old** app renders, not the SPA. Do this before Task 8, not after. Report what you saw.
+- [ ] **Step 8:** Commit.
 
 ---
 
@@ -188,6 +190,10 @@ Checkout day is deliberately excluded — you do not sleep there that night.
 
 **Do not start until Tasks 1-7 are complete, the full suite is green, and Kenny has agreed a time when both phones are together on wifi.**
 
+- [ ] **Step 0: Establish the restore point, before changing anything.** This is the one step in the project where a mistake reaches real data on two phones.
+  - Confirm **TASK item 2 (the legacy `{f}`-only photo-ref migration) has shipped.** It is a hard prerequisite, for a reason that is easy to miss: `collectRefs` skips any ref without `p`, so on un-migrated data it returns an **empty** set — which means `hydratePhotos` downloads nothing *and* `sweepOrphans` sees `live.size === 0`. The only thing preventing a full wipe of the device's blobs is the `if (!live.size && keys.length) return 0` guard. Do not cut over while that guard is the last line of defence.
+  - `cd _backups/honeymoon-data && git fetch origin && git log -1 origin/main` — record the SHA in the report. Every photo and every prior `state.json` is recoverable from that history, but only if someone knows the good commit.
+  - Confirm the backup clone is current, not months stale.
 - [ ] **Step 1:** Set `base` to `/honeymoon/` in `vite.config.ts`. The font URLs are relative and survive this; verify anyway with `grep -c "honeymoon/next" dist/` → 0.
 - [ ] **Step 2:** Set **`VITE_SYNC_ENABLED=1`** in the workflow build step.
 
@@ -205,6 +211,10 @@ Checkout day is deliberately excluded — you do not sleep there that night.
 - [ ] **Step 7:** Commit and tag.
 
 **Rollback, at any point:** `git revert` the cutover commit and push, or open `/honeymoon/legacy/`. Data is untouched by either — it lives in localStorage and IndexedDB, which no deploy can reach.
+
+Two caveats on that, both learned the hard way elsewhere in this project:
+- A revert changes what the *server* sends; it does not evict a service worker that is already installed on a phone. If `/honeymoon/legacy/` is wrong after a revert, force-quit and reopen so the worker updates before concluding the rollback failed.
+- "Data is untouched" holds for a *deploy*. It does not hold for a bad **sync**, which writes to the shared repo and propagates to both phones. That is what Step 0's restore point is for.
 
 ---
 
