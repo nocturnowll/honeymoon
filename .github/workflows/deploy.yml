@@ -1,0 +1,30 @@
+name: Deploy
+on:
+  push: { branches: [main] }
+  workflow_dispatch:
+permissions: { contents: read, pages: write, id-token: write }
+concurrency: { group: pages, cancel-in-progress: false }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+      - name: Build SPA
+        run: cd app && bun install --frozen-lockfile && bun run vite build
+      - name: Assemble site
+        run: |
+          mkdir -p _site/next
+          cp index.html sw.js manifest.json _site/
+          cp -R assets _site/assets
+          cp -R app/dist/* _site/next/
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: _site }
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: { name: github-pages, url: '${{ steps.d.outputs.page_url }}' }
+    steps:
+      - id: d
+        uses: actions/deploy-pages@v4
