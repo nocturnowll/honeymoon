@@ -15,10 +15,11 @@ jobs:
         run: cd app && bun install --frozen-lockfile && bun run vite build
       - name: Assemble site
         run: |
-          mkdir -p _site/next
+          mkdir -p _site/next _site/legacy
           cp index.html sw.js manifest.json _site/
           cp -R assets _site/assets
           cp -R app/dist/* _site/next/
+          cp -R legacy/* _site/legacy/
       - uses: actions/upload-pages-artifact@v3
         with: { path: _site }
   deploy:
