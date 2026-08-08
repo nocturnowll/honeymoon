@@ -1,10 +1,28 @@
 import { expect, test, beforeEach, afterEach, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { store } from './store';
+import { idbDel, idbGet, idbKeys, idbPut } from './persist';
+
+// jsdom has no real IndexedDB (see photos.test.ts), so addLocalPhoto /
+// removeLocalPhoto below need a stand-in backing store.
+vi.mock('./persist', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./persist')>();
+  return { ...actual, idbGet: vi.fn(), idbKeys: vi.fn(), idbDel: vi.fn(), idbPut: vi.fn() };
+});
 
 const cfg = { owner:'o', repo:'r', branch:'main', token:'t', device:'d' };
 const online = () => vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
 
-beforeEach(() => { localStorage.clear(); store.reset(); vi.useFakeTimers(); });
+let idbBlobs: Map<string, Blob>;
+
+beforeEach(() => {
+  localStorage.clear(); store.reset(); vi.useFakeTimers();
+  idbBlobs = new Map();
+  (idbPut as unknown as Mock).mockImplementation(async (k: string, b: Blob) => { idbBlobs.set(k, b); return true; });
+  (idbGet as unknown as Mock).mockImplementation(async (k: string) => idbBlobs.get(k) ?? null);
+  (idbDel as unknown as Mock).mockImplementation(async (k: string) => { idbBlobs.delete(k); return true; });
+  (idbKeys as unknown as Mock).mockImplementation(async () => [...idbBlobs.keys()]);
+});
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 test('a mutation stamps _t so the merge can see it', () => {
@@ -109,4 +127,43 @@ test('an explicit sync call is refused while sync is disabled', async () => {
   const fetchSpy = vi.spyOn(globalThis, 'fetch');
   await expect(store.sync(true)).resolves.toBe(false);
   expect(fetchSpy).not.toHaveBeenCalled();
+});
+
+test('photoType reports a PDF blob\'s MIME type once addLocalPhoto has it in hand', async () => {
+  const ref = await store.addLocalPhoto(new Blob(['%PDF fake'], { type: 'application/pdf' }));
+  expect(store.photoType(ref)).toBe('application/pdf');
+  expect(store.photoUrl(ref)).not.toBeNull();
+});
+
+test('photoType reports an image blob\'s MIME type the same way', async () => {
+  const ref = await store.addLocalPhoto(new Blob(['jpeg'], { type: 'image/jpeg' }));
+  expect(store.photoType(ref)).toBe('image/jpeg');
+});
+
+test('removeLocalPhoto releases both the object URL and the recorded type', async () => {
+  const ref = await store.addLocalPhoto(new Blob(['%PDF fake'], { type: 'application/pdf' }));
+  await store.removeLocalPhoto(ref);
+  expect(store.photoType(ref)).toBeNull();
+  expect(store.photoUrl(ref)).toBeNull();
+  expect(idbBlobs.has(ref.p)).toBe(false);
+});
+
+test('deleting a booking\'s attachments through removeLocalPhoto drops the underlying blobs', async () => {
+  const photo = await store.addLocalPhoto(new Blob(['jpeg'], { type: 'image/jpeg' }));
+  const pdf = await store.addLocalPhoto(new Blob(['pdf'], { type: 'application/pdf' }));
+  store.mutate('bookings', 'b1', s => {
+    s.bookings.push({ id: 'b1', type: 'stay', name: 'Sample lodge', date: '2026-09-28', files: [photo, pdf] });
+  });
+  expect(idbBlobs.size).toBe(2);
+
+  // What BookingSheet's delete handler does: drop the booking, then release
+  // every ref it held.
+  const files = store.getState().bookings.find(b => b.id === 'b1')!.files!;
+  store.mutate('bookings', 'b1', s => { s.bookings = s.bookings.filter(b => b.id !== 'b1'); });
+  await Promise.all(files.map(ref => store.removeLocalPhoto(ref)));
+
+  expect(store.getState().bookings).toHaveLength(0);
+  expect(idbBlobs.size).toBe(0);
+  expect(store.photoUrl(photo)).toBeNull();
+  expect(store.photoUrl(pdf)).toBeNull();
 });

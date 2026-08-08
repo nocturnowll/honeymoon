@@ -36,6 +36,10 @@ class Store {
   private auto: ReturnType<typeof setInterval> | null = null;
   private syncEnabled = SYNC_ENABLED;
   private photoUrls = new Map<string, string>();
+  /** Mirrors `photoUrls`, keyed the same way: the blob's MIME type, captured
+   *  whenever the blob itself is in hand. Lets a renderer tell an image
+   *  attachment from a PDF one without re-reading IndexedDB. */
+  private photoTypes = new Map<string, string>();
   private photoRevision = 0;
   private booted = false;
 
@@ -58,6 +62,7 @@ class Store {
     this.photoRevision = 0;
     this.photoUrls.forEach(url => URL.revokeObjectURL(url));
     this.photoUrls.clear();
+    this.photoTypes.clear();
     this.listeners.clear();
     if (this.nudgeT) { clearTimeout(this.nudgeT); this.nudgeT = null; }
     if (this.auto) { clearInterval(this.auto); this.auto = null; }
@@ -81,7 +86,11 @@ class Store {
     for (const id of await idbKeys()) {
       if (this.photoUrls.has(id)) continue;
       const blob = await idbGet(id);
-      if (blob) { this.photoUrls.set(id, URL.createObjectURL(blob)); arrived = true; }
+      if (blob) {
+        this.photoUrls.set(id, URL.createObjectURL(blob));
+        this.photoTypes.set(id, blob.type);
+        arrived = true;
+      }
     }
     if (arrived) { this.photoRevision++; this.emit(); }
     return arrived;
@@ -94,16 +103,21 @@ class Store {
     const id = `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
     await idbPut(id, blob);
     this.photoUrls.set(id, URL.createObjectURL(blob));
+    this.photoTypes.set(id, blob.type);
     this.photoRevision++;
     this.emit();
     return { p: id };
   }
 
-  /** Remove a local blob when a user replaces or clears an outfit photo. */
+  /** Remove a local blob when a user replaces or clears a photo — an outfit
+   *  photo, or a booking attachment. Also the release side of Task 5: a
+   *  caller that removes every ref a deleted booking held is what lets
+   *  `sweepOrphans` reclaim those blobs instead of leaking them forever. */
   async removeLocalPhoto(ref: PhotoRef | undefined): Promise<void> {
     if (!ref) return;
     const url = this.photoUrls.get(ref.p);
     if (url) { URL.revokeObjectURL(url); this.photoUrls.delete(ref.p); }
+    this.photoTypes.delete(ref.p);
     await idbDel(ref.p);
     this.photoRevision++;
     this.emit();
@@ -119,12 +133,13 @@ class Store {
         const existing = this.photoUrls.get(ref.p);
         if (existing) URL.revokeObjectURL(existing);
         this.photoUrls.set(ref.p, URL.createObjectURL(blob));
+        this.photoTypes.set(ref.p, blob.type);
         arrived = true;
       }
     }
     const live = new Set(collectRefs(this.state).map(ref => ref.p));
     for (const [id, url] of this.photoUrls) {
-      if (!live.has(id)) { URL.revokeObjectURL(url); this.photoUrls.delete(id); }
+      if (!live.has(id)) { URL.revokeObjectURL(url); this.photoUrls.delete(id); this.photoTypes.delete(id); }
     }
     if (arrived) { this.photoRevision++; this.emit(); }
     return arrived;
@@ -134,6 +149,14 @@ class Store {
     if (!ref) return null;
     if (typeof ref === 'string') return ref.startsWith('data:') || ref.startsWith('http') ? ref : null;
     return this.photoUrls.get(ref.p) ?? null;
+  }
+
+  /** The blob's MIME type, when it is in hand locally — `null` before it has
+   *  arrived. Booking attachments use this to render a PDF as a chip instead
+   *  of an `<img>` thumbnail. */
+  photoType(ref: PhotoRef | string | null | undefined): string | null {
+    if (!ref || typeof ref === 'string') return null;
+    return this.photoTypes.get(ref.p) ?? null;
   }
 
   /** Run the one-time boot sync immediately when sync is configured and enabled. */

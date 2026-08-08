@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { processImage } from './image';
+import { processImage, processAttachment } from './image';
 
 const originalImage = globalThis.Image;
 const originalCreateElement = document.createElement.bind(document);
@@ -78,4 +78,24 @@ test('rejects when the image cannot be read', async () => {
   });
   await expect(processImage(new Blob(['bad'], { type: 'image/jpeg' })))
     .rejects.toThrow('That file is not a readable image');
+});
+
+test('processAttachment stores a PDF as-is, skipping resize entirely', async () => {
+  const pdf = new Blob(['%PDF-1.4 fake confirmation'], { type: 'application/pdf' });
+  const result = await processAttachment(pdf);
+  expect(result).toBe(pdf);
+  expect(toBlob).not.toHaveBeenCalled();
+  expect(context.drawImage).not.toHaveBeenCalled();
+});
+
+test('processAttachment routes an image through processImage, same as any other photo', async () => {
+  const result = await processAttachment(new Blob(['input'], { type: 'image/jpeg' }));
+  expect(toBlob).toHaveBeenCalledOnce();
+  expect(result.type).toBe('image/jpeg');
+});
+
+test('processAttachment rejects a file that is neither an image nor a PDF', async () => {
+  await expect(processAttachment(new Blob(['x'], { type: 'text/plain' })))
+    .rejects.toThrow('Attach a photo or a PDF of the confirmation');
+  expect(toBlob).not.toHaveBeenCalled();
 });

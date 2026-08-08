@@ -54,3 +54,16 @@ export const IMAGE_LIMITS = {
   maxPx: MAX_IMAGE_PX,
   quality: JPEG_QUALITY,
 } as const;
+
+/**
+ * Single entry point for booking attachments: a Booking.com confirmation is
+ * as often a PDF as a photo. PDFs skip resizing entirely and are stored as
+ * the raw Blob — `processImage` above stays image-only for outfit photos,
+ * which never need to accept a PDF. Keeping the type branch here, rather
+ * than scattered at each call site, is what Task 5 asked for.
+ */
+export function processAttachment(file: Blob): Promise<Blob> {
+  if (file.type === 'application/pdf') return Promise.resolve(file);
+  if (file.type.startsWith('image/')) return processImage(file);
+  return Promise.reject(new Error('Attach a photo or a PDF of the confirmation'));
+}
