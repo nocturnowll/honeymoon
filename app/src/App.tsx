@@ -9,6 +9,7 @@ import { Budget } from './routes/Budget';
 import { Lists } from './routes/Lists';
 import { Map } from './routes/Map';
 import { SettingsSheet } from './components/SettingsSheet';
+import { UpdatePrompt } from './components/UpdatePrompt';
 
 export function App() {
   const route = useRoute();
@@ -25,5 +26,6 @@ export function App() {
     <Nav active={route.tab} />
     <main><ErrorBoundary label={route.tab}>{screen}</ErrorBoundary></main>
     <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    <UpdatePrompt />
   </>;
 }
