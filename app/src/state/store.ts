@@ -179,7 +179,10 @@ class Store {
       if (file?.content) {
         try {
           remote = JSON.parse(decodeUtf8(file.content));
-          migrateFileRefs(remote);
+          // Repair shape only — do NOT stamp. `_t` here would make a legacy
+          // remote ref look edited-now and win the merge unconditionally,
+          // silently dropping a newer local edit. See migrate.ts.
+          migrateFileRefs(remote, { stamp: false });
         } catch { /* corrupt remote */ }
       }
 
