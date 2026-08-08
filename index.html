@@ -274,7 +274,7 @@ details.acc .ab{padding:0 13px 13px}
 <input type="file" id="filepick" accept="image/*" style="display:none" multiple>
 <script>
 /* ═══════════════════ TRIP DATA ═══════════════════ */
-const BUILD='2026.08.08-1';   // shown in Export → About, so you can tell what is live
+const BUILD='2026.08.08-2';   // shown in Export → About, so you can tell what is live
 const TRIP={start:'2026-09-14',end:'2026-10-06',pax:2,
  flights:[
   {code:'BR 238',from:'Jakarta (CGK)',to:'Taipei (TPE)',date:'2026-09-14',dep:'14:30',arr:'20:55',st:'booked'},
@@ -1822,7 +1822,7 @@ async function vMoney(){
    const spentNative=spent.reduce((n,s)=>n+(s.cur===c.cur?s.amt:s.amt*FX.idr(s.cur||'USD')/FX.idr(c.cur)),0);
    const spentIdr=spent.reduce((n,s)=>n+spendIDR(s),0);
    const lim=c.limit||0;
-   const pct=lim?Math.min(100,spentIdr/lim*100):0;
+   const pct=lim?Math.min(100,(isCash?spentNative:spentIdr)/lim*100):0;
    const eff=cardRate(c,'USD');
    h+=`<div class="card pad">
     <div class="row" style="margin-bottom:6px">

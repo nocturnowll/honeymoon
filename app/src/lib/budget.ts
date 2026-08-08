@@ -29,3 +29,15 @@ export function headroom(card: Card, spend: Spend[]): { spent: number; remaining
 export function cheapestCard(cards: Card[], currency = 'USD'): Card | null {
   return cards.filter(card => card.type !== 'cash').reduce<Card | null>((best, card) => !best || cardRate(card, currency) < cardRate(best, currency) ? card : best, null);
 }
+
+// A "cheapest card" comparison is only meaningful between cards you can actually
+// choose to spend on — cash isn't a payment option to compare rates against.
+export function showsCheapest(cards: Card[]): boolean {
+  return cards.filter(card => card.type !== 'cash').length > 1;
+}
+
+// Matches the live app's copy ("More than 85% ... is logged"): the warning
+// must not fire until spend is strictly past 85%, for cash and cards alike.
+export function warnsNearLimit(card: Card, percent: number): boolean {
+  return percent > 85;
+}

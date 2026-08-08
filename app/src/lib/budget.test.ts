@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { cheapestCard, headroom, spendForCard, totalSpendInIdr } from './budget';
+import { cheapestCard, headroom, showsCheapest, spendForCard, totalSpendInIdr, warnsNearLimit } from './budget';
 import { FX } from './fx';
 
 const cards = [{ id:'a', type:'visa', nick:'A', cur:'IDR', limit:1000, markup:2 }, { id:'b', type:'mastercard', nick:'B', cur:'IDR', limit:2000, markup:4 }];
@@ -28,4 +28,30 @@ test('total spend includes the selected card markup', () => {
 test('cheapest-card selection uses effective card rate', () => {
   FX.rates = { IDR: 16500, CAD: 1.37, USD: 1 };
   expect(cheapestCard(cards)?.id).toBe('a');
+});
+
+test('cheapest banner does not show with only one card to compare against cash', () => {
+  const oneCardOneCash = [
+    { id: 'a', type: 'visa', nick: 'A', cur: 'IDR', limit: 1000, markup: 2 },
+    { id: 'cash', type: 'cash', nick: 'Cash', cur: 'USD', limit: 500 },
+  ];
+  expect(showsCheapest(oneCardOneCash)).toBe(false);
+});
+
+test('cheapest banner shows and names the lower-rate card when there are two cards', () => {
+  expect(showsCheapest(cards)).toBe(true);
+  expect(cheapestCard(cards)?.nick).toBe('A');
+});
+
+test('cash warns once more than 85% of the amount carried is logged', () => {
+  expect(warnsNearLimit({ id: 'cash', type: 'cash', nick: 'Cash', cur: 'USD', limit: 500 }, 90)).toBe(true);
+});
+
+test('cash does not warn at 50% logged', () => {
+  expect(warnsNearLimit({ id: 'cash', type: 'cash', nick: 'Cash', cur: 'USD', limit: 500 }, 50)).toBe(false);
+});
+
+test('the 85% threshold is strict, matching the card copy ("more than 85%")', () => {
+  expect(warnsNearLimit(cards[0], 85)).toBe(false);
+  expect(warnsNearLimit(cards[0], 85.01)).toBe(true);
 });
