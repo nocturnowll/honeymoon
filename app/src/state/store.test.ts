@@ -2,6 +2,7 @@ import { expect, test, beforeEach, afterEach, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { store } from './store';
 import { idbDel, idbGet, idbKeys, idbPut } from './persist';
+import { cheapestCard } from '../lib/budget';
 
 // jsdom has no real IndexedDB (see photos.test.ts), so addLocalPhoto /
 // removeLocalPhoto below need a stand-in backing store.
@@ -166,4 +167,102 @@ test('deleting a booking\'s attachments through removeLocalPhoto drops the under
   expect(idbBlobs.size).toBe(0);
   expect(store.photoUrl(photo)).toBeNull();
   expect(store.photoUrl(pdf)).toBeNull();
+});
+
+// --- emit() section-identity invariant --------------------------------
+//
+// mutate() callbacks write into section containers IN PLACE (`s.spend.push`,
+// `s.bookings[i] = ...`), so the only thing that can give a section a new
+// identity is emit() itself. A test that only calls store.mutate and reads
+// store.state back proves nothing about this, because reading the same
+// mutated-in-place array back always shows the right contents whether or
+// not its reference changed. These tests inspect reference identity
+// directly, the same signal a useMemo([state.<section>]) depends on.
+
+test('emit gives `bookings` a fresh array reference after a mutation that pushes', () => {
+  const before = store.getState().bookings;
+  store.mutate('bookings', 'b1', s => {
+    s.bookings.push({ id: 'b1', type: 'stay', name: 'Sample lodge', date: '2026-09-28' });
+  });
+  const after = store.getState().bookings;
+  expect(after).not.toBe(before);
+  expect(after).toHaveLength(1);
+  expect(after[0]).toMatchObject({ id: 'b1', name: 'Sample lodge' });
+});
+
+test('emit gives `cards` a fresh array reference after a mutation that pushes', () => {
+  const before = store.getState().cards;
+  store.mutate('cards', 'c1', s => {
+    s.cards.push({ id: 'c1', type: 'card', nick: 'Amex' });
+  });
+  const after = store.getState().cards;
+  expect(after).not.toBe(before);
+  expect(after).toHaveLength(1);
+  expect(after[0]).toMatchObject({ id: 'c1', nick: 'Amex' });
+});
+
+test('emit gives `spend` a fresh array reference after a mutation that pushes', () => {
+  const before = store.getState().spend;
+  store.mutate('spend', 's1', s => {
+    s.spend.push({ id: 's1', date: '2026-09-28', cur: 'USD', amt: 42 });
+  });
+  const after = store.getState().spend;
+  expect(after).not.toBe(before);
+  expect(after).toHaveLength(1);
+  expect(after[0]).toMatchObject({ id: 's1', amt: 42 });
+});
+
+test('a sequence of mutations across sections loses and duplicates nothing', () => {
+  store.mutate('spend', 's1', s => { s.spend.push({ id: 's1', date: '2026-09-01', cur: 'USD', amt: 10 }); });
+  store.mutate('spend', 's2', s => { s.spend.push({ id: 's2', date: '2026-09-02', cur: 'USD', amt: 20 }); });
+  store.mutate('bookings', 'b1', s => { s.bookings.push({ id: 'b1', type: 'stay', name: 'A', date: '2026-09-10' }); });
+  store.mutate('bookings', 'b1', s => { s.bookings[0].name = 'A (confirmed)'; });
+  store.mutate('cards', 'c1', s => { s.cards.push({ id: 'c1', type: 'card', nick: 'Visa' }); });
+
+  const state = store.getState();
+  expect(state.spend.map(s => s.id)).toEqual(['s1', 's2']);
+  expect(state.spend.map(s => s.amt)).toEqual([10, 20]);
+  expect(state.bookings).toHaveLength(1);
+  expect(state.bookings[0]).toMatchObject({ id: 'b1', name: 'A (confirmed)' });
+  expect(state.cards).toHaveLength(1);
+  expect(state.cards[0]).toMatchObject({ id: 'c1', nick: 'Visa' });
+});
+
+test('Budget regression: mutating cards produces a new state.cards reference, so a useMemo([state.cards]) recomputes the cheapest-card recommendation', () => {
+  store.mutate('cards', 'c1', s => {
+    s.cards.push({ id: 'c1', type: 'card', nick: 'Card A', markup: 3, fee: 0 });
+  });
+  // Simulate useMemo(() => cheapestCard(state.cards), [state.cards]) on the
+  // Budget screen: a memo cache keyed by the dependency's reference.
+  let memoDeps: unknown = store.getState().cards;
+  let memoValue = cheapestCard(store.getState().cards);
+  expect(memoValue?.id).toBe('c1');
+
+  store.mutate('cards', 'c2', s => {
+    s.cards.push({ id: 'c2', type: 'card', nick: 'Card B', markup: 1, fee: 0 });
+  });
+  const cardsAfterSecond = store.getState().cards;
+
+  // This is the exact check React's useMemo performs on its dependency
+  // array: Object.is on the old vs. new value. If this fails, the real
+  // Budget screen keeps showing "Card A" as cheapest forever.
+  expect(cardsAfterSecond).not.toBe(memoDeps);
+
+  memoDeps = cardsAfterSecond;
+  memoValue = cheapestCard(cardsAfterSecond);
+  expect(memoValue?.id).toBe('c2');
+});
+
+test('emit gives `_t` (the touch map, itself mutated in place by touch()) a fresh reference on every mutation', () => {
+  // The first mutate() call creates `_t` (emptyState() starts without one),
+  // so comparing to the pre-mutation `undefined` would pass trivially even
+  // under the old buggy emit(). Compare two POST-mutation references
+  // instead: touch() mutates `_t` in place, so under the old emit() the
+  // second mutation's `_t` is the *same object* as the first's.
+  store.mutate('notes', 'n1', s => { s.notes['n1'] = 'hi'; });
+  const before = store.getState()._t;
+  store.mutate('notes', 'n2', s => { s.notes['n2'] = 'yo'; });
+  const after = store.getState()._t;
+  expect(after).not.toBe(before);
+  expect(after).toMatchObject({ 'notes:n1': expect.any(Number), 'notes:n2': expect.any(Number) });
 });

@@ -51,7 +51,47 @@ class Store {
   /** Test seam, and the Plan 3 cutover switch. */
   enableSync(on: boolean) { this.syncEnabled = on; }
   subscribe = (fn: () => void) => { this.listeners.add(fn); return () => { this.listeners.delete(fn); }; };
-  private emit() { this.state = { ...this.state }; this.listeners.forEach(f => f()); }
+
+  /** `mutate` callbacks write into section containers IN PLACE — `s.spend
+   *  .push(draft)`, `s.bookings[i] = ...` — and `touch` does the same to
+   *  `s._t`. A plain `{ ...this.state }` only gives the *top-level* state
+   *  object a new identity; every section keeps the exact array/object
+   *  reference it had before the mutation, because a shallow copy copies
+   *  references. A `useMemo`/`useEffect` keyed on `state.<section>` then
+   *  never re-runs, and the UI shows stale data until something unrelated
+   *  forces a reload (this shipped once already: BookingList's list didn't
+   *  show a just-saved booking, fixed at that call site in bd57d2c).
+   *
+   *  INVARIANT enforced here: after emit() returns, every own top-level
+   *  container on `state` — every array and every plain object, including
+   *  `_t` — is a NEW reference, distinct from what it was before this
+   *  mutation. No consumer can be holding a stale reference to a section.
+   *  A memo keyed on `state.<section>` is therefore always correct without
+   *  that call site having to know this bug exists.
+   *
+   *  Only the containers are refreshed, not their contents (no deep
+   *  clone) — mutate() always replaces or appends leaf values rather than
+   *  mutating a leaf object in place, so a shallow copy per section is
+   *  enough. Cost is irrelevant: about a dozen shallow copies per edit.
+   *
+   *  We walk every own enumerable key generically rather than hard-coding
+   *  the known SYNCED sections, for two reasons: (1) `_t` is not a SYNCED
+   *  section but IS a map `touch` mutates in place, so it needs the same
+   *  treatment and a hard-coded list would have to remember it specially;
+   *  (2) a field added to TripState later doesn't silently reintroduce
+   *  this bug by being forgotten in a hand-maintained list. Primitive
+   *  fields (`_updated`, `_by`, `_note`, `v`) pass through unchanged —
+   *  primitives have no reference identity to go stale. */
+  private emit() {
+    const next = { ...this.state } as Record<string, unknown>;
+    for (const key of Object.keys(next)) {
+      const val = next[key];
+      if (Array.isArray(val)) next[key] = [...val];
+      else if (val && typeof val === 'object') next[key] = { ...val };
+    }
+    this.state = next as unknown as TripState;
+    this.listeners.forEach(f => f());
+  }
 
   /** Test seam. */
   reset() {
