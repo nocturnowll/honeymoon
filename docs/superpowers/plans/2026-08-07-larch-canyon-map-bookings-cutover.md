@@ -81,7 +81,7 @@ Real extent, measured: lon **−122.419 → −111.456**, lat **34.052 → 51.08
 
 **Interfaces produced:** `<TripMap legs? bases? interactive? onPinTap? />`
 
-- [ ] **Step 1:** Render base geometry as SVG paths, styled from the existing tokens — `--line-2` for borders, `--stone` for roads, `--paper` background. It should read as a drawn map, not a screenshot.
+- [ ] **Step 1:** Render base geometry as SVG paths, styled from the existing tokens — `--line-2` for borders, **`--stone` for the coastline**, `--paper` background. It should read as a drawn map, not a screenshot. (Corrected 2026-08-08: the original said `--stone` for *roads*, but Task 1 produced no road geometry — Natural Earth publishes roads only at 1:10m, a 50MB download, and they were deliberately dropped. Coastline takes the bolder token.)
 - [ ] **Step 2:** All **12** pins from `BASES`, plus a route polyline over **`ROUTE`** (the 11 overnight bases, in trip order). Death Valley gets a pin but the route does not detour through it. Do not iterate `LOC` for the route — see Task 1 Step 3.
 - [ ] **Step 3:** Pinch-zoom and pan via pointer events. `touch-action: none` on the canvas only — not on the page, or the tab stops scrolling.
 - [ ] **Step 4:** Tap a pin → callback with the base key. In the Map tab this navigates to the first day at that base.
