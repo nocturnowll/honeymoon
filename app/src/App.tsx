@@ -7,6 +7,7 @@ import { Now } from './routes/Now';
 import { Itinerary } from './routes/Itinerary';
 import { Budget } from './routes/Budget';
 import { Lists } from './routes/Lists';
+import { Map } from './routes/Map';
 import { SettingsSheet } from './components/SettingsSheet';
 
 export function App() {
@@ -17,7 +18,7 @@ export function App() {
     itinerary: <Itinerary initialDay={route.params.day ? Number(route.params.day) : undefined} />,
     budget: <Budget />,
     lists: <Lists />,
-    map: <section className="empty card"><h2>Map</h2><p>The route map placeholder is ready for Plan 3.</p></section>,
+    map: <Map />,
   }[route.tab];
   return <>
     <Header onSettings={() => setSettingsOpen(true)} />
