@@ -1,8 +1,8 @@
 import { expect, test } from 'vitest';
 import { BASES, ROUTE, fitBounds, project, unproject } from './geo';
 
-test('BASES holds all 12 trip locations', () => {
-  expect(BASES.length).toBe(12);
+test('BASES holds all 13 trip locations', () => {
+  expect(BASES.length).toBe(13);
 });
 
 test('ROUTE holds the 11 overnight bases, in trip order', () => {

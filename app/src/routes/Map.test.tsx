@@ -22,11 +22,11 @@ afterEach(() => {
   window.location.hash = '';
 });
 
-test('the map tab renders all 12 trip pins', () => {
+test('the map tab renders all 13 trip pins', () => {
   act(() => {
     root.render(<Map />);
   });
-  expect(container.querySelectorAll('.map-pin')).toHaveLength(12);
+  expect(container.querySelectorAll('.map-pin')).toHaveLength(13);
 });
 
 test('tapping a pin navigates to the first day whose base matches it', () => {

@@ -32,12 +32,12 @@ function pinPositions(): { key: string; x: number; y: number }[] {
   });
 }
 
-test('all 12 bases render a pin, spread across the viewport at default zoom — not stacked at the centre', () => {
+test('all 13 bases render a pin, spread across the viewport at default zoom — not stacked at the centre', () => {
   act(() => {
     root.render(<TripMap />);
   });
   const pins = pinPositions();
-  expect(pins).toHaveLength(12);
+  expect(pins).toHaveLength(13);
 
   // 390x600 is the map's own logical coordinate system (viewBox), matching the
   // default fit tested in lib/geo.test.ts. A collapsed projection would put every
